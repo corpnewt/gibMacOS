@@ -129,7 +129,7 @@ class gibMacOS:
         prod_list = sorted(prod_list, key=lambda x:x["time"], reverse=True)
         return prod_list
 
-    def download_prod(self, prod):
+    def download_prod(self, prod, dmg = False):
         # Takes a dictonary of details and downloads it
         cwd = os.getcwd()
         os.chdir(os.path.dirname(os.path.realpath(__file__)))
@@ -155,6 +155,8 @@ class gibMacOS:
         for x in prod["packages"]:
             if not x.get("URL",None):
                 continue
+            if dmg and not x.get("URL","").lower().endswith(".dmg"):
+                continue
             # add it to the list
             dl_list.append(x["URL"])
         if not len(dl_list):
@@ -171,6 +173,9 @@ class gibMacOS:
             c += 1
             self.u.head("Downloading File {} of {}".format(c, len(dl_list)))
             print("")
+            if dmg:
+                print("NOTE: Only Downloading DMG Files")
+                print("")
             print("Downloading {} for {}...".format(os.path.basename(x), name))
             print("")
             try:
@@ -196,7 +201,7 @@ class gibMacOS:
         print("")
         self.u.grab("Press [enter] to return...")
 
-    def main(self):
+    def main(self, dmg = False):
         self.u.head()
         print("")
         print("Available Products:")
@@ -225,34 +230,35 @@ class gibMacOS:
             return
         if menu < 1 or menu > len(self.mac_prods):
             return
-        self.download_prod(self.mac_prods[menu-1])
+        self.download_prod(self.mac_prods[menu-1], dmg)
 
-    def get_latest(self):
+    def get_latest(self, dmg = False):
         self.u.head("Downloading Latest")
         print("")
-        self.download_prod(self.mac_prods[-1])
+        self.download_prod(self.mac_prods[-1], dmg)
 
-    def get_for_product(self, prod):
+    def get_for_product(self, prod, dmg = False):
         self.u.head("Downloading for {}".format(prod))
         print("")
         for p in self.mac_prods:
             if p["product"] == prod:
-                self.download_prod(p)
+                self.download_prod(p, dmg)
                 return
         print("{} not found".format(prod))
 
-    def get_for_version(self, vers):
+    def get_for_version(self, vers, dmg = False):
         self.u.head("Downloading for {}".format(vers))
         print("")
         for p in self.mac_prods:
             if p["version"] == vers:
-                self.download_prod(p)
+                self.download_prod(p, dmg)
                 return
         print("10.{} not found".format(vers))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--latest", help="downloads the version avaialble in the current catalog (overrides --version and --product)", action="store_true")
+    parser.add_argument("-d", "--dmg", help="downloads only the .dmg files", action="store_true")
     parser.add_argument("-c", "--catalog", help="sets the CATALOG to use - publicrelease, public, customer, developer")
     parser.add_argument("-p", "--product", help="sets the product id to search for (overrides --version)")
     parser.add_argument("-v", "--version", help="sets the version of macOS to target - eg 10.14")
@@ -263,16 +269,16 @@ if __name__ == '__main__':
         # Set the catalog
         g.set_catalog(args.catalog)
     if args.latest:
-        g.get_latest()
+        g.get_latest(args.dmg)
         exit()
     if args.product:
-        g.get_for_product(args.product)
+        g.get_for_product(args.product, args.dmg)
         exit()
     if args.version:
-        g.get_for_version(args.version)
+        g.get_for_version(args.version, args.dmg)
         exit()
 
     print("main")
 
     while True:
-        g.main()
+        g.main(args.dmg)
