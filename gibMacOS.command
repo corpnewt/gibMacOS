@@ -169,12 +169,14 @@ class gibMacOS:
             self.u.grab("Press [enter] to return...")
             return
         c = 0
-        failed = []
-        succeeded = []
+        done = []
         for x in dl_list:
             c += 1
             self.u.head("Downloading File {} of {}".format(c, len(dl_list)))
             print("")
+            if len(done):
+                print("\n".join(["{} --> {}".format(x["name"], "Succeeded" if x["status"] else "Failed") for x in done]))
+                print("")
             if dmg:
                 print("NOTE: Only Downloading DMG Files")
                 print("")
@@ -182,24 +184,29 @@ class gibMacOS:
             print("")
             try:
                 self.d.stream_to_file(x, os.path.join(os.getcwd(), self.saves, self.current_catalog, name, os.path.basename(x)))
-                succeeded.append(os.path.basename(x))
+                done.append({"name":os.path.basename(x), "status":True})
             except:
-                failed.append(os.path.basename(x))
+                done.append({"name":os.path.basename(x), "status":False})
+        succeeded = [x for x in done if x["status"]]
+        failed    = [x for x in done if not x["status"]]
         self.u.head("Downloaded {} of {}".format(len(succeeded), len(dl_list)))
         print("")
         print("Succeeded:")
         if len(succeeded):
             for x in succeeded:
-                print("  {}".format(x))
+                print("  {}".format(x["name"]))
         else:
             print("  None")
         print("")
         print("Failed:")
         if len(failed):
             for x in failed:
-                print("  {}".format(x))
+                print("  {}".format(x["name"]))
         else:
             print("  None")
+        print("")
+        print("Files saved to:")
+        print("  {}".format(os.path.join(os.getcwd(), self.saves, self.current_catalog, name)))
         print("")
         self.u.grab("Press [enter] to return...")
 
