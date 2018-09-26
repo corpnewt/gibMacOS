@@ -228,23 +228,27 @@ class gibMacOS:
         self.download_prod(self.mac_prods[menu-1])
 
     def get_latest(self):
+        self.u.head("Downloading Latest")
+        print("")
         self.download_prod(self.mac_prods[-1])
 
     def get_for_product(self, prod):
+        self.u.head("Downloading for {}".format(prod))
+        print("")
         for p in self.mac_prods:
             if p["product"] == prod:
-                self.download_prod(prod)
+                self.download_prod(p)
                 return
         print("{} not found".format(prod))
 
     def get_for_version(self, vers):
-        if str(vers).startswith("10."):
-            vers = str(vers)[3:]
+        self.u.head("Downloading for {}".format(vers))
+        print("")
         for p in self.mac_prods:
             if p["version"] == vers:
-                self.download_prod(prod)
+                self.download_prod(p)
                 return
-        print("{} not found".format(vers))
+        print("10.{} not found".format(vers))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -267,6 +271,8 @@ if __name__ == '__main__':
     if args.version:
         g.get_for_version(args.version)
         exit()
+
+    print("main")
 
     while True:
         g.main()
