@@ -238,6 +238,8 @@ class gibMacOS:
         print("{} not found".format(prod))
 
     def get_for_version(self, vers):
+        if str(vers).startswith("10."):
+            vers = str(vers)[3:]
         for p in self.mac_prods:
             if p["version"] == vers:
                 self.download_prod(prod)
