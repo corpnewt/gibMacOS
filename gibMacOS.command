@@ -27,6 +27,8 @@ class gibMacOS:
         self.plist   = "cat.plist"
         self.saves   = "macOS Downloads"
         self.save_local = False
+
+    def set_prods(self):
         if not self.get_catalog_data(self.save_local):
             self.u.head("Catalog Data Error")
             print("")
@@ -262,23 +264,33 @@ if __name__ == '__main__':
     parser.add_argument("-c", "--catalog", help="sets the CATALOG to use - publicrelease, public, customer, developer")
     parser.add_argument("-p", "--product", help="sets the product id to search for (overrides --version)")
     parser.add_argument("-v", "--version", help="sets the version of macOS to target - eg 10.14")
+    parser.add_argument("-m", "--maxos", help="sets the max macOS version to consider when building the url - eg 10.14")
     args = parser.parse_args()
 
     g = gibMacOS()
+
+    if args.maxos:
+        try:
+            m = int(str(args.maxos).replace("10.",""))
+            g.current_macos = m
+        except:
+            pass
     if args.catalog:
         # Set the catalog
         g.set_catalog(args.catalog)
+
+    # Done setting up pre-requisites
+    g.set_prods()
+
     if args.latest:
         g.get_latest(args.dmg)
         exit()
-    if args.product:
+    if args.product != None:
         g.get_for_product(args.product, args.dmg)
         exit()
-    if args.version:
+    if args.version != None:
         g.get_for_version(args.version, args.dmg)
         exit()
-
-    print("main")
 
     while True:
         g.main(args.dmg)
