@@ -107,11 +107,11 @@ class gibMacOS:
         for prod in prods:
             # Grab the ServerMetadataURL for the passed product key if it exists
             prodd = {"product":prod}
-            try:
-                b = self.d.get_bytes(plist_dict.get("Products",{}).get(prod,{}).get("ServerMetadataURL",""), False)
-                smd = plist.loads(b)
-            except:
-                smd = {}
+            #try:
+            b = self.d.get_bytes(plist_dict.get("Products",{}).get(prod,{}).get("ServerMetadataURL",""), False)
+            smd = plist.loads(b)
+            #except:
+            #    smd = {}
             # Populate some info!
             prodd["date"] = plist_dict.get("Products",{}).get(prod,{}).get("PostDate","")
             prodd["time"] = time.mktime(prodd["date"].timetuple()) + prodd["date"].microsecond / 1E6

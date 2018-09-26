@@ -63,7 +63,10 @@ def load(fp, fmt=None, use_builtin_types=True, dict_type=dict):
 def loads(value, fmt=None, use_builtin_types=True, dict_type=dict):
     if isinstance(value, _get_inst()):
         # We were sent a string - let's encode it to some utf-8 bytes for fun!
-        value = value.encode("utf-8")
+        try:
+            value = value.encode("utf-8")
+        except:
+            pass
     fp = BytesIO(value)
     if _check_py3():
         return plistlib.load(fp, fmt=fmt, use_builtin_types=use_builtin_types, dict_type=dict_type)
