@@ -3,6 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Ignore hidden files
+.*
+
+# Ignore our save directory
+macOS Downloads
+
 # C extensions
 *.so
 
