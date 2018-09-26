@@ -175,11 +175,12 @@ class gibMacOS:
             self.u.head("Downloading File {} of {}".format(c, len(dl_list)))
             print("")
             if len(done):
-                print("\n".join(["{} --> {}".format(x["name"], "Succeeded" if x["status"] else "Failed") for x in done]))
+                print("\n".join(["{} --> {}".format(y["name"], "Succeeded" if y["status"] else "Failed") for y in done]))
                 print("")
             if dmg:
                 print("NOTE: Only Downloading DMG Files")
                 print("")
+            print(x)
             print("Downloading {} for {}...".format(os.path.basename(x), name))
             print("")
             try:
