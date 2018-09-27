@@ -102,16 +102,16 @@ class gibMacOS:
             plist_dict = {}
         else:
             plist_dict = self.catalog_data if plist_dict == None else plist_dict
-        
+
         prod_list = []
         for prod in prods:
             # Grab the ServerMetadataURL for the passed product key if it exists
             prodd = {"product":prod}
-            #try:
-            b = self.d.get_bytes(plist_dict.get("Products",{}).get(prod,{}).get("ServerMetadataURL",""), False)
-            smd = plist.loads(b)
-            #except:
-            #    smd = {}
+            try:
+                b = self.d.get_bytes(plist_dict.get("Products",{}).get(prod,{}).get("ServerMetadataURL",""), False)
+                smd = plist.loads(b)
+            except:
+                smd = {}
             # Populate some info!
             prodd["date"] = plist_dict.get("Products",{}).get(prod,{}).get("PostDate","")
             prodd["time"] = time.mktime(prodd["date"].timetuple()) + prodd["date"].microsecond / 1E6
@@ -211,6 +211,17 @@ class gibMacOS:
         print("")
         self.u.grab("Press [enter] to return...")
 
+    def show_catalog_url(self):
+        self.u.head()
+        print("")
+        print("Current Catalog:   {}".format(self.current_catalog))
+        print("Max macOS Version: 10.{}".format(self.current_macos))
+        print("")
+        print("{}".format(self.build_url()))
+        print("")
+        menu = self.u.grab("Press [enter] to return...")
+        return
+
     def main(self, dmg = False):
         self.u.head()
         print("")
@@ -225,6 +236,7 @@ class gibMacOS:
             num += 1
             print("{}. {} {}\n   - Added {}".format(num, p["version"], p["title"], p["date"]))
         print("")
+        print("U. Show Catalog URL")
         print("Q. Quit")
         print("")
         menu = self.u.grab("Please select an option:  ")
@@ -232,6 +244,9 @@ class gibMacOS:
             return
         if menu[0].lower() == "q":
             self.u.custom_quit()
+        elif menu[0].lower() == "u":
+            self.show_catalog_url()
+            return
         
         # Assume we picked something
         try:
