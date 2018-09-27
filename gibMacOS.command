@@ -37,6 +37,9 @@ class gibMacOS:
         )
 
     def resize(self, width=0, height=0):
+        if os.name=="nt":
+            # Winders resizing is dumb... bail
+            return
         width = width if width > self.min_w else self.min_w
         height = height if height > self.min_h else self.min_h
         self.u.resize(width, height)
@@ -149,7 +152,12 @@ class gibMacOS:
                 desctext = None
             prodd["description"] = desctext
             # Iterate the available packages and save their urls and sizes
-            prodd["packages"] = plist_dict.get("Products",{}).get(prod,{}).get("Packages",{})
+            if self.find_recovery:
+                # Only get the recovery packages
+                prodd["packages"] = [x for x in plist_dict.get("Products",{}).get(prod,{}).get("Packages",[]) if x["URL"].endswith(self.recovery_suffixes)]
+            else:
+                # Add them all!
+                prodd["packages"] = plist_dict.get("Products",{}).get(prod,{}).get("Packages",[])
             prod_list.append(prodd)
         # Sort by newest
         prod_list = sorted(prod_list, key=lambda x:x["time"], reverse=True)
@@ -205,7 +213,6 @@ class gibMacOS:
             if dmg:
                 print("NOTE: Only Downloading DMG Files")
                 print("")
-            print(x)
             print("Downloading {} for {}...".format(os.path.basename(x), name))
             print("")
             try:
