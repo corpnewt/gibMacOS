@@ -6,6 +6,9 @@ class gibMacOS:
     def __init__(self):
         self.d = downloader.Downloader()
         self.u = utils.Utils("gibMacOS")
+        self.min_w = 80
+        self.min_h = 24
+        self.u.resize(self.min_w, self.min_h)
 
         self.catalog_suffix = {
             "public" : "beta",
@@ -27,8 +30,19 @@ class gibMacOS:
         self.plist   = "cat.plist"
         self.saves   = "macOS Downloads"
         self.save_local = False
+        self.find_recovery = False
+        self.recovery_suffixes = (
+            "RecoveryHDUpdate.pkg",
+            "RecoveryHDMetaDmg.pkg"
+        )
+
+    def resize(self, width=0, height=0):
+        width = width if width > self.min_w else self.min_w
+        height = height if height > self.min_h else self.min_h
+        self.u.resize(width, height)
 
     def set_prods(self):
+        self.resize()
         if not self.get_catalog_data(self.save_local):
             self.u.head("Catalog Data Error")
             print("")
@@ -93,8 +107,13 @@ class gibMacOS:
             return []
         mac_prods = []
         for p in plist_dict.get("Products", {}):
-            if plist_dict.get("Products",{}).get(p,{}).get("ExtendedMetaInfo",{}).get("InstallAssistantPackageIdentifiers",{}).get("OSInstall",{}) == "com.apple.mpkg.OSInstall":
-                mac_prods.append(p)
+            if not self.find_recovery:
+                if plist_dict.get("Products",{}).get(p,{}).get("ExtendedMetaInfo",{}).get("InstallAssistantPackageIdentifiers",{}).get("OSInstall",{}) == "com.apple.mpkg.OSInstall":
+                    mac_prods.append(p)
+            else:
+                # Find out if we have any of the recovert_suffixes
+                if any(x for x in plist_dict.get("Products",{}).get(p,{}).get("Packages",[]) if x["URL"].endswith(self.recovery_suffixes)):
+                    mac_prods.append(p)
         return mac_prods
 
     def get_dict_for_prods(self, prods, plist_dict = None):
@@ -114,9 +133,14 @@ class gibMacOS:
                 smd = {}
             # Populate some info!
             prodd["date"] = plist_dict.get("Products",{}).get(prod,{}).get("PostDate","")
+            prodd["installer"] = False
+            if plist_dict.get("Products",{}).get(prod,{}).get("ExtendedMetaInfo",{}).get("InstallAssistantPackageIdentifiers",{}).get("OSInstall",{}) == "com.apple.mpkg.OSInstall":
+                prodd["installer"] = True
             prodd["time"] = time.mktime(prodd["date"].timetuple()) + prodd["date"].microsecond / 1E6
             prodd["title"] = smd.get("localization",{}).get("English",{}).get("title","Unknown")
             prodd["version"] = smd.get("CFBundleShortVersionString","Unknown")
+            if prodd["version"] == " ":
+                prodd["version"] = ""
             # Try to get the description too
             try:
                 desc = smd.get("localization",{}).get("English",{}).get("description","").decode("utf-8")
@@ -133,6 +157,7 @@ class gibMacOS:
 
     def download_prod(self, prod, dmg = False):
         # Takes a dictonary of details and downloads it
+        self.resize()
         cwd = os.getcwd()
         os.chdir(os.path.dirname(os.path.realpath(__file__)))
         name = "{} - {} {}".format(prod["product"], prod["version"], prod["title"])
@@ -212,6 +237,7 @@ class gibMacOS:
         self.u.grab("Press [enter] to return...")
 
     def show_catalog_url(self):
+        self.resize()
         self.u.head()
         print("")
         print("Current Catalog:   {}".format(self.current_catalog))
@@ -228,21 +254,31 @@ class gibMacOS:
         print("Available Products:")
         print("")
         num = 0
+        w = 0
         if not len(self.mac_prods):
             print("No installers in catalog!")
             print("")
             exit()
         for p in self.mac_prods:
             num += 1
-            print("{}. {} {}\n   - Added {}".format(num, p["version"], p["title"], p["date"]))
+            var1 = "{}. {} {}".format(num, p["title"], p["version"])
+            var2 = "   - {} - Added {}".format(p["product"], p["date"])
+            if self.find_recovery and p["installer"]:
+                # Show that it's a full installer
+                var2 += " - FULL Install"
+            w = len(var1) if len(var1) > w else w
+            w = len(var2) if len(var2) > w else w
+            print(var1)
+            print(var2)
         print("")
         print("U. Show Catalog URL")
         print("Q. Quit")
-        print("")
+        self.resize(w, (num*2)+11)
         menu = self.u.grab("Please select an option:  ")
         if not len(menu):
             return
         if menu[0].lower() == "q":
+            self.resize()
             self.u.custom_quit()
         elif menu[0].lower() == "u":
             self.show_catalog_url()
@@ -283,6 +319,7 @@ class gibMacOS:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--latest", help="downloads the version avaialble in the current catalog (overrides --version and --product)", action="store_true")
+    parser.add_argument("-r", "--recovery", help="looks for RecoveryHDUpdate.pkg and RecoveryHDMetaDmg.pkg in lieu of com.apple.mpkg.OSInstall (overrides --dmg)", action="store_true")
     parser.add_argument("-d", "--dmg", help="downloads only the .dmg files", action="store_true")
     parser.add_argument("-c", "--catalog", help="sets the CATALOG to use - publicrelease, public, customer, developer")
     parser.add_argument("-p", "--product", help="sets the product id to search for (overrides --version)")
@@ -291,6 +328,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     g = gibMacOS()
+    if args.recovery:
+        args.dmg = False
+        g.find_recovery = args.recovery
 
     if args.maxos:
         try:
