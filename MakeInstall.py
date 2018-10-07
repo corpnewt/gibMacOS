@@ -34,7 +34,7 @@ class WinUSB:
         return disks
 
     def check_dd(self):
-        # Checks if dd.exe exists in our Scripts dir
+        # Checks if ddrelease64.exe exists in our Scripts dir
         # and if not - downloads it
         #
         # Returns True if exists/downloaded successfully
@@ -51,7 +51,7 @@ class WinUSB:
         return os.path.exists(os.path.join(self.s_path, self.dd_name))
 
     def check_7z(self):
-        # Check for 7za.exe and if not - download 7zr msi and install
+        # Check for 7z.exe in Program Files and if not - download the 7z msi and install
         #
         # Returns True if found, False if not
         if os.path.exists(self.z_path):
@@ -104,6 +104,10 @@ class WinUSB:
         self.u.head("Creating DiskPart Script")
         print("")
         # Then we'll re-gather our disk info on success and move forward
+        # Using MBR to effectively set the individual partition types
+        # Keeps us from having issues mounting the EFI on Windows -
+        # and also lets us explicitly set the partition id for the main
+        # data partition.
         dp_script = "\n".join([
             "select disk {}".format(disk.get("index",-1)),
             "clean",
@@ -112,9 +116,6 @@ class WinUSB:
             "format quick fs=fat32 label='CLOVER'",
             "create partition primary id=AB", # AF = HFS, AB = Recovery
             "active"
-            # "format quick fs=ntfs",
-            # "set id=AB"
-            # "assign"
         ])
         temp = tempfile.mkdtemp()
         script = os.path.join(temp, "diskpart.txt")
@@ -269,7 +270,10 @@ class WinUSB:
         print("")
         out = self.r.run({"args":args})
         if len(out[1].split("Error")) > 1:
-            # We had some error text
+            # We had some error text - dd, even when failing likes to give us a 0
+            # status code.  It also sends a ton of text through stderr - so we comb
+            # that for "Error" then split by that to skip the extra fluff and show only
+            # the error.
             print("An error occurred:\n\n{}".format("Error"+out[1].split("Error")[1]))
         else:
             print("Done!")
