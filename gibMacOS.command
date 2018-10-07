@@ -278,9 +278,13 @@ class gibMacOS:
             print(var1)
             print(var2)
         print("")
+        print("R. Toggle Recovery-Only (Currently {})".format("On" if self.find_recovery else "Off"))
         print("U. Show Catalog URL")
         print("Q. Quit")
         self.resize(w, (num*2)+11)
+        if os.name=="nt":
+            # Formatting differences..
+            print("")
         menu = self.u.grab("Please select an option:  ")
         if not len(menu):
             return
@@ -289,6 +293,13 @@ class gibMacOS:
             self.u.custom_quit()
         elif menu[0].lower() == "u":
             self.show_catalog_url()
+            return
+        elif menu[0].lower() == "r":
+            self.find_recovery ^= True
+            self.u.head("Parsing Data")
+            print("")
+            print("Re-scanning products after recovery preference toggled...")
+            self.mac_prods = self.get_dict_for_prods(self.get_installers())
             return
         
         # Assume we picked something
