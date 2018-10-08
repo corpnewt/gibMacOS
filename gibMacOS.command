@@ -40,9 +40,10 @@ class gibMacOS:
         self.current_catalog = "publicrelease"
         self.catalog_data    = None
         self.scripts = "Scripts"
-        self.plist   = "cat.plist"
+        self.plist   = "sucatalog.plist"
         self.saves   = "macOS Downloads"
         self.save_local = False
+        self.force_local = False
         self.find_recovery = False
         self.recovery_suffixes = (
             "RecoveryHDUpdate.pkg",
@@ -81,7 +82,8 @@ class gibMacOS:
         url += "-".join([self.mac_os_names_url[str(x)] if str(x) in self.mac_os_names_url else "10."+str(x) for x in reversed(range(self.min_macos, version+1))])
         url += ".merged-1.sucatalog"
         ver_s = self.mac_os_names_url[str(version)] if str(version) in self.mac_os_names_url else "10."+str(version)
-        url = url.replace(ver_s, ver_s+self.catalog_suffix[catalog])
+        if len(self.catalog_suffix[catalog]):
+            url = url.replace(ver_s, ver_s+self.catalog_suffix[catalog]+"-"+ver_s)
         return url
 
     def get_catalog_data(self, local = False):
@@ -89,31 +91,42 @@ class gibMacOS:
         url = self.build_url(catalog=self.current_catalog, version=self.current_macos)
         self.u.head("Downloading Catalog")
         print("")
+        if local:
+            print("Checking locally for {}".format(self.plist))
+            cwd = os.getcwd()
+            os.chdir(os.path.dirname(os.path.realpath(__file__)))
+            if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.scripts, self.plist)):
+                print(" - Found - loading...")
+                try:
+                    with open(os.path.join(os.getcwd(), self.scripts, self.plist), "rb") as f:
+                        self.catalog_data = plist.load(f)
+                    os.chdir(cwd)
+                    return True
+                except:
+                    print(" - Error loading - downloading instead...\n")
+                    os.chdir(cwd)
+            else:
+                print(" - Not found - downloading instead...\n")
         print("Currently downloading {} catalog from\n\n{}\n".format(self.current_catalog, url))
         try:
             b = self.d.get_bytes(url)
+            print("")
             self.catalog_data = plist.loads(b)
+        except:
+            print("Error downloading!")
+            return False
+        try:
             # Assume it's valid data - dump it to a local file
-            if local:
+            if local or self.force_local:
+                print(" - Saving to {}...".format(self.plist))
                 cwd = os.getcwd()
                 os.chdir(os.path.dirname(os.path.realpath(__file__)))
                 with open(os.path.join(os.getcwd(), self.scripts, self.plist), "wb") as f:
                     plist.dump(self.catalog_data, f)
                 os.chdir(cwd)
         except:
-            if local:
-                # Check if we have one locally in our scripts directory
-                if not os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.scripts, self.plist)):
-                    return False
-                # It does - try to load it
-                try:
-                    cwd = os.getcwd()
-                    os.chdir(os.path.dirname(os.path.realpath(__file__)))
-                    with open(os.path.join(os.getcwd(), self.scripts, self.plist), "rb") as f:
-                        self.catalog_data = plist.load(f)
-                    os.chdir(cwd)
-                except:
-                    return False
+            print(" - Error saving!")
+            return False
         return True
 
     def get_installers(self, plist_dict = None):
@@ -379,6 +392,8 @@ if __name__ == '__main__':
     parser.add_argument("-l", "--latest", help="downloads the version avaialble in the current catalog (overrides --version and --product)", action="store_true")
     parser.add_argument("-r", "--recovery", help="looks for RecoveryHDUpdate.pkg and RecoveryHDMetaDmg.pkg in lieu of com.apple.mpkg.OSInstall (overrides --dmg)", action="store_true")
     parser.add_argument("-d", "--dmg", help="downloads only the .dmg files", action="store_true")
+    parser.add_argument("-s", "--savelocal", help="uses a locally saved sucatalog.plist if exists", action="store_true")
+    parser.add_argument("-n", "--newlocal", help="download and save locally, overwriting any prior local sucatalog.plist", action="store_true")
     parser.add_argument("-c", "--catalog", help="sets the CATALOG to use - publicrelease, public, customer, developer")
     parser.add_argument("-p", "--product", help="sets the product id to search for (overrides --version)")
     parser.add_argument("-v", "--version", help="sets the version of macOS to target - eg '-v 10.14' or '-v Yosemite'")
@@ -389,6 +404,12 @@ if __name__ == '__main__':
     if args.recovery:
         args.dmg = False
         g.find_recovery = args.recovery
+
+    if args.savelocal:
+        g.save_local = True
+
+    if args.newlocal:
+        g.force_local = True
 
     if args.maxos:
         try:
