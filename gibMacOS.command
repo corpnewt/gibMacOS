@@ -291,7 +291,7 @@ class gibMacOS:
         if not len(self.mac_prods):
             print("No installers in catalog!")
             print("")
-        for p in sorted(self.mac_prods, key=lambda x:x['version'], reverse=True):
+        for p in self.mac_prods:
             num += 1
             var1 = "{}. {} {}".format(num, p["title"], p["version"])
             var2 = "   - {} - Added {}".format(p["product"], p["date"])
