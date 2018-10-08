@@ -291,8 +291,7 @@ class gibMacOS:
         if not len(self.mac_prods):
             print("No installers in catalog!")
             print("")
-            exit()
-        for p in self.mac_prods:
+        for p in sorted(self.mac_prods, key=lambda x:x['version'], reverse=True):
             num += 1
             var1 = "{}. {} {}".format(num, p["title"], p["version"])
             var2 = "   - {} - Added {}".format(p["product"], p["date"])
@@ -340,7 +339,7 @@ class gibMacOS:
     def get_latest(self, dmg = False):
         self.u.head("Downloading Latest")
         print("")
-        self.download_prod(self.mac_prods[-1], dmg)
+        self.download_prod(sorted(self.mac_prods, key=lambda x:x['version'], reverse=True)[0], dmg)
 
     def get_for_product(self, prod, dmg = False):
         self.u.head("Downloading for {}".format(prod))
@@ -360,7 +359,7 @@ class gibMacOS:
         for n in self.version_names:
             v_dict[self.version_names[n]] = n
         n = v_dict.get(v, v)
-        for p in self.mac_prods:
+        for p in sorted(self.mac_prods, key=lambda x:x['version'], reverse=True):
             pt = p["title"].lower()
             pv = p["version"].lower()
             # Need to compare verisons - n = name, v = version
