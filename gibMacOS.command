@@ -24,6 +24,19 @@ class gibMacOS:
             "6" : "snowleopard",
             "5" : "leopard"
         }
+        self.version_names = {
+            "tiger" : "10.4",
+            "leopard" : "10.5",
+            "snow leopard" : "10.6",
+            "lion" : "10.7",
+            "mountain lion" : "10.8",
+            "mavericks" : "10.9",
+            "yosemite" : "10.10",
+            "el capitan" : "10.11",
+            "sierra" : "10.12",
+            "high sierra" : "10.13",
+            "mojave" : "10.14"
+        }
         self.current_catalog = "publicrelease"
         self.catalog_data    = None
         self.scripts = "Scripts"
@@ -328,11 +341,38 @@ class gibMacOS:
     def get_for_version(self, vers, dmg = False):
         self.u.head("Downloading for {}".format(vers))
         print("")
+        # Map the versions to their names
+        v = self.version_names.get(vers.lower(),vers.lower())
+        v_dict = {}
+        for n in self.version_names:
+            v_dict[self.version_names[n]] = n
+        n = v_dict.get(v, v)
         for p in self.mac_prods:
-            if p["version"] == vers:
+            pt = p["title"].lower()
+            pv = p["version"].lower()
+            # Need to compare verisons - n = name, v = version
+            # p["version"] and p["title"] may contain either the version
+            # or name - so check both
+            # We want to make sure, if we match the name to the title, that we only match
+            # once - so Sierra/High Sierra don't cross-match
+            #
+            # First check if p["version"] isn't " " or "1.0"
+            if not pv in [" ","1.0"]:
+                # Have a real version - match this first
+                if pv.startswith(v):
+                    self.download_prod(p, dmg)
+                    return
+            # Didn't match the version - or version was bad, let's check
+            # the title
+            # Need to make sure n is in the version name, but not equal to it,
+            # and the version name is in p["title"] to disqualify
+            # i.e. - "Sierra" exists in "High Sierra", but does not equal "High Sierra"
+            # and "High Sierra" is in "macOS High Sierra 10.13.6" - This would match
+            name_match = [x for x in self.version_names if n in x and x != n and x in pt]
+            if (n in pt) and not len(name_match):
                 self.download_prod(p, dmg)
                 return
-        print("10.{} not found".format(vers))
+        print("'{}' not found".format(vers))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -341,7 +381,7 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--dmg", help="downloads only the .dmg files", action="store_true")
     parser.add_argument("-c", "--catalog", help="sets the CATALOG to use - publicrelease, public, customer, developer")
     parser.add_argument("-p", "--product", help="sets the product id to search for (overrides --version)")
-    parser.add_argument("-v", "--version", help="sets the version of macOS to target - eg 10.14")
+    parser.add_argument("-v", "--version", help="sets the version of macOS to target - eg '-v 10.14' or '-v Yosemite'")
     parser.add_argument("-m", "--maxos", help="sets the max macOS version to consider when building the url - eg 10.14")
     args = parser.parse_args()
 
