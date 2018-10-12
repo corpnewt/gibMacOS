@@ -22,6 +22,8 @@ def _check_py3():
     return True if sys.version_info >= (3, 0) else False
 
 def _is_binary(fp):
+    if isinstance(fp, _get_inst()):
+        return fp.startswith(b"bplist00")
     header = fp.read(32)
     fp.seek(0)
     return header[:8] == b'bplist00'
@@ -61,16 +63,21 @@ def load(fp, fmt=None, use_builtin_types=True, dict_type=dict):
         return readBinaryPlistFile(fp)
 
 def loads(value, fmt=None, use_builtin_types=True, dict_type=dict):
-    if _check_py3() and isinstance(value, _get_inst()):
-        # We were sent a string in py3 - let's encode it to some utf-8 bytes for fun!
-        value = value.encode()
-    fp = BytesIO(value)
     if _check_py3():
-        return plistlib.load(fp, fmt=fmt, use_builtin_types=use_builtin_types, dict_type=dict_type)
-    elif not _is_binary(fp):
-        return plistlib.readPlistFromString(value)
+        # Requires fp to be a BytesIO wrapper around a bytes object
+        if isinstance(value, _get_inst()):
+            # If it's a string - encode it
+            value = value.encode()
+        # Load it
+        return plistlib.load(BytesIO(value), fmt=fmt, use_builtin_types=use_builtin_types, dict_type=dict_type)
     else:
-        return readBinaryPlistFile(fp)
+        if _is_binary(value):
+            # Has the proper header to be a binary plist
+            return readBinaryPlistFile(BytesIO(value))
+        else:
+            # Is not binary - assume a string - and try to load
+
+            return plistlib.readPlistFromString(value)
 
 def dump(value, fp, fmt=FMT_XML, sort_keys=True, skipkeys=False):
     if _check_py3():
@@ -80,10 +87,9 @@ def dump(value, fp, fmt=FMT_XML, sort_keys=True, skipkeys=False):
     
 def dumps(value, fmt=FMT_XML, skipkeys=False):
     if _check_py3():
-        return plistlib.dumps(value, fmt=fmt, skipkeys=skipkeys).encode("utf-8")
+        return plistlib.dumps(value, fmt=fmt, skipkeys=skipkeys).decode("utf-8")
     else:
-        return plistlib.writePlistToString(value).encode("utf-8")
-
+        return plistlib.writePlistToString(value)
 
 ###                        ###
 # Binary Plist Stuff For Py2 #
