@@ -155,7 +155,7 @@ def readBinaryPlistFile(in_file):
         elif token_h == 0x30: #date
             f = struct.unpack('>d', in_file.read(8))[0]
             return datetime.datetime.utcfromtimestamp(f + MAC_OS_X_TIME_OFFSET)
-        elif token_h == 0x80: #data
+        elif token_h == 0x40: #data
             s = getSize(token_l)
             return in_file.read(s)
         elif token_h == 0x50: #ascii string
