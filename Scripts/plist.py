@@ -157,7 +157,7 @@ def readBinaryPlistFile(in_file):
             return datetime.datetime.utcfromtimestamp(f + MAC_OS_X_TIME_OFFSET)
         elif token_h == 0x40: #data
             s = getSize(token_l)
-            return in_file.read(s)
+            return plistlib.Data(in_file.read(s))
         elif token_h == 0x50: #ascii string
             s = getSize(token_l)
             return in_file.read(s)
