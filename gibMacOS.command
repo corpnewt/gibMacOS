@@ -6,6 +6,7 @@ class gibMacOS:
     def __init__(self):
         self.d = downloader.Downloader()
         self.u = utils.Utils("gibMacOS")
+        self.r = run.Run()
         self.min_w = 80
         self.min_h = 24
         self.u.resize(self.min_w, self.min_h)
@@ -281,6 +282,69 @@ class gibMacOS:
         menu = self.u.grab("Press [enter] to return...")
         return
 
+    def pick_catalog(self):
+        self.resize()
+        self.u.head("Select SU Catalog")
+        print("")
+        count = 0
+        for x in self.catalog_suffix:
+            count += 1
+            print("{}. {}".format(count, x))
+        print("")
+        print("M. Main Menu")
+        print("Q. Quit")
+        print("")
+        menu = self.u.grab("Please select an option:  ")
+        if not len(menu):
+            self.pick_catalog()
+            return
+        if menu[0].lower() == "m":
+            return
+        elif menu[0].lower() == "q":
+            self.u.custom_quit()
+        # Should have something to test here
+        try:
+            i = int(menu)
+            self.current_catalog = list(self.catalog_suffix)[i-1]
+        except:
+            # Incorrect - try again
+            self.pick_catalog()
+            return
+        # If we made it here - then we got something
+        # Reload with the proper catalog
+        self.get_catalog_data()
+
+    def pick_macos(self):
+        self.resize()
+        self.u.head("Select Max macOS Version")
+        print("")
+        print("Currently set to 10.{}".format(self.current_macos))
+        print("")
+        print("M. Main Menu")
+        print("Q. Quit")
+        print("")
+        menu = self.u.grab("Please type the max macOS version for the catalog url (10.xx format):  ")
+        if not len(menu):
+            self.pick_macos()
+            return
+        if menu[0].lower() == "m":
+            return
+        elif menu[0].lower() == "q":
+            self.u.custom_quit()
+        # At this point - we should have something in 10.xx format
+        parts = menu.split(".")
+        if len(parts) > 2 or len(parts) < 2 or parts[0] != "10":
+            self.pick_macos()
+            return
+        # Got the right format
+        try:
+            self.current_macos = int(parts[1])
+        except:
+            # Not an int
+            self.pick_macos()
+            return
+        # At this point, we should be good
+
     def main(self, dmg = False):
         self.u.head()
         print("")
@@ -288,6 +352,7 @@ class gibMacOS:
         print("")
         num = 0
         w = 0
+        pad = 11
         if not len(self.mac_prods):
             print("No installers in catalog!")
             print("")
@@ -303,10 +368,16 @@ class gibMacOS:
             print(var1)
             print(var2)
         print("")
+        print("M. Change Max-OS Version (Currently 10.{})".format(self.current_macos))
+        print("C. Change Catalog (Currently {})".format(self.current_catalog))
+        if sys.platform.lower() == "darwin":
+            pad += 2
+            print("S. Set Current Catalog to SoftwareUpdate Catalog")
+            print("L. Clear SoftwareUpdate Catalog")
         print("R. Toggle Recovery-Only (Currently {})".format("On" if self.find_recovery else "Off"))
         print("U. Show Catalog URL")
         print("Q. Quit")
-        self.resize(w, (num*2)+11)
+        self.resize(w, (num*2)+pad)
         if os.name=="nt":
             # Formatting differences..
             print("")
@@ -318,6 +389,33 @@ class gibMacOS:
             self.u.custom_quit()
         elif menu[0].lower() == "u":
             self.show_catalog_url()
+            return
+        elif menu[0].lower() == "m":
+            self.pick_macos()
+            return
+        elif menu[0].lower() == "c":
+            self.pick_catalog()
+            return
+        elif menu[0].lower() == "l" and sys.platform.lower() == "darwin":
+            # Clear the software update catalog
+            self.u.head("Clearing SU CatalogURL")
+            print("")
+            print("sudo softwareupdate --clear-catalog")
+            self.r.run({"args":["softwareupdate","--clear-catalog"],"sudo":True})
+            print("")
+            self.u.grab("Done.", timeout=5)
+            return
+        elif menu[0].lower() == "s" and sys.platform.lower() == "darwin":
+            # Set the software update catalog to our current catalog url
+            self.u.head("Setting SU CatalogURL")
+            print("")
+            url = self.build_url(catalog=self.current_catalog, version=self.current_macos)
+            print("Setting catalog URL to:\n{}".format(url))
+            print("")
+            print("sudo softwareupdate --set-catalog {}".format(url))
+            self.r.run({"args":["softwareupdate","--set-catalog",url],"sudo":True})
+            print("")
+            self.u.grab("Done",timeout=5)
             return
         elif menu[0].lower() == "r":
             self.find_recovery ^= True
