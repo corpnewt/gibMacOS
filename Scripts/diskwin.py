@@ -1,4 +1,4 @@
-import subprocess, plistlib, sys, os, time, json
+import subprocess, plistlib, sys, os, time, json, csv
 sys.path.append(os.path.abspath(os.path.dirname(os.path.realpath(__file__))))
 import run
 
@@ -24,21 +24,35 @@ class Disk:
         #
         # May you all forgive me...
 
-        disks = self.r.run({"args":["wmic", "diskdrive", "get", "deviceid,model,index,size,partitions"]})[0]
-        disks = disks.replace("\r","").split("\n")[1:]
+        disks = self.r.run({"args":["wmic", "diskdrive", "get", "deviceid,model,index,size,partitions", "/format:csv"]})[0]
+        csdisk = csv.reader(disks.replace("\r","").split("\n"), delimiter=",")
+        disks = list(csdisk)
+        if not len(disks) > 3:
+            # Not enough info there - csv is like:
+            # 1. Empty row
+            # 2. Headers
+            # 3->X-1. Rest of the info
+            # X. Last empty row
+            return {}
+        # New format is:
+        # Node, Device, Index, Model, Partitions, Size
+        disks = disks[2:-1]
         p_disks = {}
         for d in disks:
-            ds = [x for x in d.split(" ") if len(x)]
+            # Skip the Node value
+            ds = d[1:]
             if len(ds) < 5:
                 continue
             p_disks[ds[1]] = {
-                "index":int(ds[1]),
                 "device":ds[0],
                 "model":" ".join(ds[2:-2]),
-                "size":int(ds[-1]),
-                "partitioncount":int(ds[-2]),
                 "type":0 # 0 = Unknown, 1 = No Root Dir, 2 = Removable, 3 = Local, 4 = Network, 5 = Disc, 6 = RAM disk
                 }
+            # More fault-tolerance with ints
+            p_disks[ds[1]]["index"] = int(ds[1]) if len(ds[1]) else -1
+            p_disks[ds[1]]["size"] = int(ds[-1]) if len(ds[-1]) else -1
+            p_disks[ds[1]]["partitioncount"] = int(ds[-2]) if len(ds[-2]) else 0
+            
         if not len(p_disks):
             # Drat, nothing
             return p_disks
@@ -62,10 +76,15 @@ class Disk:
                         p_disks[d]["partitions"] = {}
                     p_disks[d]["partitions"][p] = {"letter":mp}
         # Last attempt to do this - let's get the partition names!
-        parts = self.r.run({"args":["wmic", "logicaldisk", "get", "deviceid,filesystem,volumename,size,drivetype"]})[0]
-        parts = parts.replace("\r","").split("\n")[1:]
+        parts = self.r.run({"args":["wmic", "logicaldisk", "get", "deviceid,filesystem,volumename,size,drivetype", "/format:csv"]})[0]
+        cspart = csv.reader(parts.replace("\r","").split("\n"), delimiter=",")
+        parts = list(cspart)
+        if not len(parts) > 2:
+            return p_disks
+        parts = parts[2:-1]
         for p in parts:
-            ps = [x for x in p.split(" ") if len(x)]
+            # Again, skip the Node value
+            ps = p[1:]
             if len(ps) < 2:
                 # Need the drive letter and disk type at minimum
                 continue
@@ -78,7 +97,7 @@ class Disk:
             try:
                 pfs = ps[2] # get file system
                 psz = ps[3] # get size
-                pnm = " ".join(ps[4:]) # get the rest in the name
+                pnm = ps[4] # get the rest in the name
             except:
                 pass
             for d in p_disks:
