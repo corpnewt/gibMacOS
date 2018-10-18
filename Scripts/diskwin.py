@@ -106,10 +106,11 @@ class Disk:
                     pr = p_dict["partitions"][pr]
                     if pr.get("letter","").upper() == plt.upper():
                         # Found it - set all attributes
-                        pr["size"] = int(psz)
+                        pr["size"] = int(psz) if len(psz) else -1
                         pr["file system"] = pfs
                         pr["name"] = pnm
                         # Also need to set the parent drive's type
-                        p_dict["type"] = int(ptp)
+                        if len(ptp):
+                            p_dict["type"] = int(ptp)
                         break
         return p_disks
