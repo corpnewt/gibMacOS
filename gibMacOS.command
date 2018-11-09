@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 from Scripts import *
 import os, datetime, shutil, time, sys, argparse
 
