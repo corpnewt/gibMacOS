@@ -81,7 +81,10 @@ def loads(value, fmt=None, use_builtin_types=True, dict_type=dict):
             # Is not binary - assume a string - and try to load
             # We avoid using readPlistFromString() as that uses
             # cStringIO and fails when Unicode strings are detected
-            return plistlib.readPlist(StringIO(value))
+            s = StringIO(value)
+            p = UnicodePlistParser()
+            rootObject = p.parse(s)
+            return rootObject
 
 def dump(value, fp, fmt=FMT_XML, sort_keys=True, skipkeys=False):
     if _check_py3():
@@ -99,6 +102,38 @@ def dumps(value, fmt=FMT_XML, skipkeys=False):
         f = StringIO()
         plistlib.writePlist(value, f)
         return f.getvalue()
+
+###                            ###
+# PlistParsing of Unicode in Py2 #
+###                            ###
+
+class UnicodePlistParser (plistlib.PlistParser):
+    def _init_(self):
+        return
+    # Override the parse() method to allow for unicode results
+    # from StringIO.read()
+    def parse(self, fileobj):
+        from xml.parsers.expat import ParserCreate
+        parser = ParserCreate()
+        parser.StartElementHandler = self.handleBeginElement
+        parser.EndElementHandler = self.handleEndElement
+        parser.CharacterDataHandler = self.handleData
+        if isinstance(fileobj, StringIO):
+            # If we have a StringIO object, let's try to
+            # read it - and find out what it returns as
+            # the ParseFile() function can't work with
+            # unicode objects
+            f_read = fileobj.read()
+            if isinstance(f_read, unicode):
+                # Encode unicode -> string; use utf-8 for safety
+                f_read = f_read.encode("utf-8")
+            # Parse the string
+            parser.Parse(f_read, 1)
+        else:
+            # Not a StringIO object - probably a file object?
+            # Parse normally.
+            parser.ParseFile(fileobj)
+        return self.root
 
 ###                        ###
 # Binary Plist Stuff For Py2 #
