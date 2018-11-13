@@ -4,6 +4,9 @@
 
 import datetime
 from io import BytesIO
+# Force use of StringIO instead of cStringIO as the latter
+# has issues with Unicode strings
+from StringIO import StringIO
 import os
 import plistlib
 import struct
@@ -76,8 +79,9 @@ def loads(value, fmt=None, use_builtin_types=True, dict_type=dict):
             return readBinaryPlistFile(BytesIO(value))
         else:
             # Is not binary - assume a string - and try to load
-
-            return plistlib.readPlistFromString(value)
+            # We avoid using readPlistFromString() as that uses
+            # cStringIO and fails when Unicode strings are detected
+            return plistlib.readPlist(StringIO(value))
 
 def dump(value, fp, fmt=FMT_XML, sort_keys=True, skipkeys=False):
     if _check_py3():
