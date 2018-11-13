@@ -93,7 +93,12 @@ def dumps(value, fmt=FMT_XML, skipkeys=False):
     if _check_py3():
         return plistlib.dumps(value, fmt=fmt, skipkeys=skipkeys).decode("utf-8")
     else:
-        return plistlib.writePlistToString(value)
+        # We avoid using writePlistToString() as that uses
+        # cStringIO and fails when Unicode strings are detected
+        # return plistlib.writePlistToString(value)
+        f = StringIO()
+        plistlib.writePlist(value, f)
+        return f.getvalue()
 
 ###                        ###
 # Binary Plist Stuff For Py2 #
