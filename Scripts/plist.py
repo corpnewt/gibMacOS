@@ -4,13 +4,15 @@
 
 import datetime
 from io import BytesIO
-# Force use of StringIO instead of cStringIO as the latter
-# has issues with Unicode strings
-from StringIO import StringIO
 import os
 import plistlib
 import struct
 import sys
+
+if sys.version_info < (3,0):
+    # Force use of StringIO instead of cStringIO as the latter
+    # has issues with Unicode strings
+    from StringIO import StringIO
 
 try:
     FMT_XML = plistlib.FMT_XML
@@ -81,8 +83,22 @@ def loads(value, fmt=None, use_builtin_types=True, dict_type=dict):
             # Is not binary - assume a string - and try to load
             # We avoid using readPlistFromString() as that uses
             # cStringIO and fails when Unicode strings are detected
-            s = StringIO(value)
-            p = UnicodePlistParser()
+            # Don't subclass - keep the parser local
+            from xml.parsers.expat import ParserCreate
+            # Create a new PlistParser object - then we need to set up
+            # the values and parse.
+            p = plistlib.PlistParser()
+            parser = ParserCreate()
+            parser.StartElementHandler = p.handleBeginElement
+            parser.EndElementHandler = p.handleEndElement
+            parser.CharacterDataHandler = p.handleData
+            if isinstance(value, unicode):
+                # Encode unicode -> string; use utf-8 for safety
+                value = value.encode("utf-8")
+            # Parse the string
+            parser.Parse(value, 1)
+            return p.root
+            
             rootObject = p.parse(s)
             return rootObject
 
@@ -98,42 +114,9 @@ def dumps(value, fmt=FMT_XML, skipkeys=False):
     else:
         # We avoid using writePlistToString() as that uses
         # cStringIO and fails when Unicode strings are detected
-        # return plistlib.writePlistToString(value)
         f = StringIO()
         plistlib.writePlist(value, f)
         return f.getvalue()
-
-###                            ###
-# PlistParsing of Unicode in Py2 #
-###                            ###
-
-class UnicodePlistParser (plistlib.PlistParser):
-    def _init_(self):
-        return
-    # Override the parse() method to allow for unicode results
-    # from StringIO.read()
-    def parse(self, fileobj):
-        from xml.parsers.expat import ParserCreate
-        parser = ParserCreate()
-        parser.StartElementHandler = self.handleBeginElement
-        parser.EndElementHandler = self.handleEndElement
-        parser.CharacterDataHandler = self.handleData
-        if isinstance(fileobj, StringIO):
-            # If we have a StringIO object, let's try to
-            # read it - and find out what it returns as
-            # the ParseFile() function can't work with
-            # unicode objects
-            f_read = fileobj.read()
-            if isinstance(f_read, unicode):
-                # Encode unicode -> string; use utf-8 for safety
-                f_read = f_read.encode("utf-8")
-            # Parse the string
-            parser.Parse(f_read, 1)
-        else:
-            # Not a StringIO object - probably a file object?
-            # Parse normally.
-            parser.ParseFile(fileobj)
-        return self.root
 
 ###                        ###
 # Binary Plist Stuff For Py2 #
