@@ -78,6 +78,12 @@ class Run:
                 return (output, error, p.returncode)
             return ("", "Command not found!", 1)
 
+    def _decode(self, value):
+        # Helper method to only decode if bytes type
+        if sys.version_info >= (3,0) and isinstance(value, bytes):
+            return value.decode("utf-8","ignore")
+        return value
+
     def _run_command(self, comm, shell = False):
         c = None
         try:
@@ -87,11 +93,10 @@ class Run:
                 comm = shlex.split(comm)
             p = subprocess.Popen(comm, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             c = p.communicate()
-            return (c[0].decode("utf-8", "ignore"), c[1].decode("utf-8", "ignore"), p.returncode)
         except:
             if c == None:
                 return ("", "Command not found!", 1)
-            return (c[0].decode("utf-8", "ignore"), c[1].decode("utf-8", "ignore"), p.returncode)
+        return (self._decode(c[0]), self._decode(c[1]), p.returncode)
 
     def run(self, command_list, leave_on_fail = False):
         # Command list should be an array of dicts

@@ -10,8 +10,20 @@ class Disk:
         self.os_version = ".".join(
             self.r.run({"args":["sw_vers", "-productVersion"]})[0].split(".")[:2]
         )
+        self.full_os_version = self.r.run({"args":["sw_vers", "-productVersion"]})[0]
+        if len(self.full_os_version.split(".")) < 3:
+            # Add .0 in case of 10.14
+            self.full_os_version += ".0"
+        self.sudo_mount_version = "10.13.6"
+        self.sudo_mount_types   = ["efi"]
         self.apfs = {}
         self._update_disks()
+
+    def _get_str(self, val):
+        # Helper method to return a string value based on input type
+        if (sys.version_info < (3,0) and isinstance(val, (str, unicode))) or (sys.version_info >= (3,0) and isinstance(val, str)):
+            return val
+        return str(val)
 
     def _get_plist(self, s):
         p = {}
@@ -24,23 +36,44 @@ class Disk:
             pass
         return p
 
-    def _compare_versions(self, vers1, vers2):
+    def _compare_versions(self, vers1, vers2, pad = -1):
         # Helper method to compare ##.## strings
         #
         # vers1 < vers2 = True
         # vers1 = vers2 = None
         # vers1 > vers2 = False
         #
-        try:
-            v1_parts = vers1.split(".")
-            v2_parts = vers2.split(".")
-        except:
-            # Formatted wrong - return None
-            return None
+        # Must be separated with a period
+        
+        # Sanitize the pads
+        pad = -1 if not type(pad) is int else pad
+        
+        # Cast as strings
+        vers1 = str(vers1)
+        vers2 = str(vers2)
+        
+        # Split to lists
+        v1_parts = vers1.split(".")
+        v2_parts = vers2.split(".")
+        
+        # Equalize lengths
+        if len(v1_parts) < len(v2_parts):
+            v1_parts.extend([str(pad) for x in range(len(v2_parts) - len(v1_parts))])
+        elif len(v2_parts) < len(v1_parts):
+            v2_parts.extend([str(pad) for x in range(len(v1_parts) - len(v2_parts))])
+        
+        # Iterate and compare
         for i in range(len(v1_parts)):
-            if int(v1_parts[i]) < int(v2_parts[i]):
+            # Remove non-numeric
+            v1 = ''.join(c for c in v1_parts[i] if c.isdigit())
+            v2 = ''.join(c for c in v2_parts[i] if c.isdigit())
+            # If empty - make it a pad var
+            v1 = pad if not len(v1) else v1
+            v2 = pad if not len(v2) else v2
+            # Compare
+            if int(v1) < int(v2):
                 return True
-            elif int(v1_parts[i]) > int(v2_parts[i]):
+            elif int(v1) > int(v2):
                 return False
         # Never differed - return None, must be equal
         return None
@@ -154,7 +187,7 @@ class Disk:
         # Should be able to take a mount point, disk name, or disk identifier,
         # and return the disk's identifier
         # Iterate!!
-        if not disk or not len(str(disk)):
+        if not disk or not len(self._get_str(disk)):
             return None
         disk = disk.lower()
         if disk.startswith("/dev/r"):
@@ -270,43 +303,14 @@ class Disk:
                         return p.get("DeviceIdentifier", None)
         return None
 
-    def mount_partition(self, disk, sudo=False):
+    def mount_partition(self, disk):
         disk_id = self.get_identifier(disk)
         if not disk_id:
             return None
-        if sudo:
-            # We need to create a new folder, then mount it manually
-            fst = self.get_disk_fs_type(disk_id)
-            if not fst:
-                # No detected fs
-                return None
-            vn = self.get_volume_name(disk_id)
-            if vn == "":
-                vn = "Untitled"
-            # Get safe volume name
-            if os.path.exists(os.path.join("/Volumes", vn)):
-                num = 1
-                while True:
-                    if os.path.exists(os.path.join("/Volumes", vn + " " + str(num))):
-                        num += 1
-                        continue
-                    break
-                vn = vn + " " + str(num)
-            # Create the dir, then mount
-            out = self.r.run([
-                {"args":["mkdir", os.path.join("/Volumes", vn)], "sudo":True, "show":True},
-                {"args":["mount", "-t", fst, "/dev/"+disk_id, os.path.join("/Volumes", vn)], "sudo":True, "show":True}
-            ], True)
-            self._update_disks()
-            if len(out) and type(out[0]) is tuple:
-                out = out[-1] # Set out to the last output
-                if out[2] != 0:
-                    # Non-zero exit code, clean up our mount point - if it exists
-                    if os.path.exists(os.path.join("/Volumes", vn)):
-                        self.r.run({"args":["rm", "-Rf", os.path.join("/Volumes", vn)], "sudo":True})
-            return out
-
-        out = self.r.run({"args":[self.diskutil, "mount", disk_id]})
+        sudo = False
+        if not self._compare_versions(self.full_os_version, self.sudo_mount_version) and self.get_content(disk_id).lower() in self.sudo_mount_types:
+            sudo = True
+        out = self.r.run({"args":[self.diskutil, "mount", disk_id], "sudo":sudo})
         self._update_disks()
         return out
 
