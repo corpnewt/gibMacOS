@@ -9,6 +9,9 @@ __pycache__/
 # Ignore our save directory
 macOS Downloads
 
+# Ignore dd
+ddrelease64.exe
+
 # C extensions
 *.so
 
