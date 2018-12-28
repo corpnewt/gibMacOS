@@ -61,7 +61,7 @@ class Downloader:
                 b_s = self.get_size(bytes_so_far)
             sys.stdout.write("Downloaded {} of {} ({:.2f}%)\r".format(b_s, t_s, percent))
         else:
-            sys.stdout.write("Downloaded {}\r".format(b_s))
+            sys.stdout.write("Downloaded {:,}\r".format(bytes_so_far))
 
     def get_string(self, url, progress = True):
         response = self.open_url(url)
