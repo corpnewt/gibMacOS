@@ -32,7 +32,7 @@ class Downloader:
     def get_size(self, size, suff=None):
         if size == -1:
             return "Unknown"
-        ext = ["B","KB","MB","GB","PB"]
+        ext = ["B","KB","MB","GB","TB","PB"]
         s = float(size)
         s_dict = {}
         # Iterate the ext list, and divide by 1000 each time
