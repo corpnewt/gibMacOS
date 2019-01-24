@@ -15,12 +15,12 @@ class Run:
         return
 
     def _read_output(self, pipe, q):
-        while True:
-            try:
-                q.put(pipe.read(1))
-            except ValueError:
-                pipe.close()
-                break
+        try:
+            for line in iter(lambda: pipe.read(1), b''):
+                q.put(line)
+        except ValueError:
+            pass
+        pipe.close()
 
     def _stream_output(self, comm, shell = False):
         output = error = ""
@@ -30,7 +30,7 @@ class Run:
                 comm = " ".join(shlex.quote(x) for x in comm)
             if not shell and type(comm) is str:
                 comm = shlex.split(comm)
-            p = subprocess.Popen(comm, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1, universal_newlines=True, close_fds=ON_POSIX)
+            p = subprocess.Popen(comm, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0, universal_newlines=True, close_fds=ON_POSIX)
             # Setup the stdout thread/queue
             q = Queue()
             t = threading.Thread(target=self._read_output, args=(p.stdout, q))
@@ -50,16 +50,17 @@ class Run:
                 except Empty:
                     pass
                 else:
+                    sys.stdout.write(c)
                     output += c
+                    sys.stdout.flush()
                 try:
                     z = qe.get_nowait()
                 except Empty:
                     pass
                 else:
+                    sys.stderr.write(z)
                     error += z
-                sys.stdout.write(c)
-                sys.stdout.write(z)
-                sys.stdout.flush()
+                    sys.stderr.flush()
                 p.poll()
                 if c==z=="" and p.returncode != None:
                     break
