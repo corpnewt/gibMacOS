@@ -16,8 +16,33 @@ class WinUSB:
         self.s_path  = os.path.join(os.path.dirname(os.path.realpath(__file__)), self.scripts)
         self.dd_url  = "http://www.chrysocome.net/downloads/ddrelease64.exe"
         self.dd_name = os.path.basename(self.dd_url)
-        self.z_url  = "https://www.7-zip.org/a/7z1805-x64.msi"
+        self.z_json = "https://sourceforge.net/projects/sevenzip/best_release.json"
+        self.z_url2 = "https://www.7-zip.org/a/7z1806-x64.msi"
+        self.z_url  = "https://www.7-zip.org/a/7z[[vers]]-x64.msi"
         self.z_name = "7z.exe"
+        self.z_reg  = [
+            {
+                "loc" : "HKLM\\Software\\Classes\\CLSID\\{23170F69-40C1-278A-1000-000100020000}",
+                "val" : "7-Zip Shell Extension"
+            },
+            {
+                "loc" : "HKLM\\Software\\Classes\\CLSID\\{23170F69-40C1-278A-1000-000100020000}\InprocServer32",
+                "name": "ThreadingModel",
+                "val" : "Apartment"
+            },
+            {
+                "loc" : "HKLM\\Software\\Classes\\*\\shellex\\ContextMenuHanders\\7-Zip",
+                "val" : "{23170F69-40C1-278A-1000-000100020000}"
+            },
+            {
+                "loc" : "HKLM\\Software\\Classes\\Directory\\shellex\\ContextMenuHanders\\7-Zip",
+                "val" : "{23170F69-40C1-278A-1000-000100020000}"
+            },
+            {
+                "loc" : "HKLM\\Software\\Classes\\Folder\\shellex\\ContextMenuHanders\\7-Zip",
+                "val" : "{23170F69-40C1-278A-1000-000100020000}"
+            },
+        ]
         self.bi_url = "https://sites.google.com/site/gbrtools/home/software/bootice-portable/files/BOOTICE_v1.3.3.2.zip"
         self.bi_name = "BOOTICEx64.exe"
         self.clover_url = "https://api.github.com/repos/dids/clover-builder/releases/latest"
@@ -101,12 +126,41 @@ class WinUSB:
             return True
         print("Didn't locate {} - downloading...".format(self.z_name))
         # Didn't find it - let's do some stupid stuff
+        # First we get our json response - or rather, try to, then parse it
+        # looking for the current version
+        dl_url = None
+        try:
+            json = json.loads(self.dl.get_string(self.z_json))
+            v_num = json.get("release",{}).get("filename","").split("/")[-1].lower().replace("7z","").replace(".exe","")
+            if len(v_num):
+                dl_url = self.url.replace("[[vers]]",v_num)
+        except:
+            pass
+        if not dl_url:
+            dl_url = self.z_url2
         temp = tempfile.mkdtemp()
-        self.dl.stream_to_file(self.z_url, os.path.join(temp, self.z_name))
+        self.dl.stream_to_file(dl_url, os.path.join(temp, self.z_name))
         print("")
         print("Installing 7zip...")
         # From Tim Sutton's brigadier:  https://github.com/timsutton/brigadier/blob/master/brigadier
         self.r.run({"args":["msiexec", "/qn", "/i", os.path.join(temp, self.z_name)],"stream":True})
+        print("Setting reg entries...")
+        for x in self.z_reg:
+            if not "val" in x or not "loc" in x:
+                continue
+            args = ["reg.exe","add",x["loc"]]
+            if x.get("name",None):
+                args.extend(["/v",x["name"]])
+            if x.get("type",None):
+                args.extend(["/t",x["type"]])
+            if x.get("val",None):
+                args.extend(["/d",x["val"]])
+            args.append("/f")
+            out = self.r.run({"args":args})
+            if out[2] != 0:
+                print("Error: {}".format(out[1]))
+                print("")
+                self.u.grab("Press [enter] to exit...")
         print("")
         return os.path.exists(self.z_path)
 
