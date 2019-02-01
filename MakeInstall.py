@@ -362,7 +362,7 @@ class WinUSB:
             self.select_package(disk)
             return
         # Got the package - let's make sure it's named right - just in case
-        if os.path.basename(path).lower() == "4.hfs":
+        if os.path.basename(path).lower().endswith(".hfs"):
             # We have an hfs image already - bypass extraction
             self.dd_image(disk, path)
             return
