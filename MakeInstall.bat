@@ -28,8 +28,19 @@ exit /B
 setlocal enableDelayedExpansion
 
 REM Setup initial vars
-set "script_name=MakeInstall.py"
+set "script_name=%~n0.py"
 set "thisDir=%~dp0"
+
+REM Check for our script first
+if not exist "!thisDir!\!script_name!" (
+    echo Could not find !script_name!.
+    echo Please make sure to run this script from the same directory
+    echo as !script_name!.
+    echo.
+    echo Press [enter] to quit.
+    pause > nul
+    exit /b
+)
 
 REM Get python location
 FOR /F "tokens=* USEBACKQ" %%F IN (`where python 2^> nul`) DO (
