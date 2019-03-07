@@ -32,7 +32,7 @@ class Downloader:
             # Py2 and a Cert verify error - let's set the unverified context
             context = ssl._create_unverified_context()
             try:
-                response = urlopen(Request(url, headers=headers))
+                response = urlopen(Request(url, headers=headers), context=context)
             except:
                 # No fixing this - bail
                 return None
