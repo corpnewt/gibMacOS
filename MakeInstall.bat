@@ -28,7 +28,7 @@ exit /B
 setlocal enableDelayedExpansion
 
 REM Setup initial vars
-set "script_name=%~n0.command"
+set "script_name=%~n0.py"
 set "thisDir=%~dp0"
 set /a tried=0
 
