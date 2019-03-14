@@ -5,6 +5,7 @@ REM Setup initial vars
 set "script_name=%~n0.command"
 set "thisDir=%~dp0"
 set /a tried=0
+set "toask=yes"
 
 goto checkscript
 
@@ -30,7 +31,12 @@ FOR /F "tokens=* USEBACKQ" %%F IN (`where python 2^> nul`) DO (
 REM Check for py and give helpful hints!
 if /i "!python!"=="" (
     if %tried% lss 1 (
-        goto installpy
+        if /i "!toask!"=="yes" (
+            REM Better ask permission first
+            goto askinstall
+        ) else (
+            goto installpy
+        )
     ) else (
         cls
         echo   ###     ###
@@ -52,6 +58,26 @@ if /i "!python!"=="" (
     )
 )
 goto runscript
+
+:askinstall
+cls
+echo   ###              ###
+echo  # Python Not Found #
+echo ###              ###
+echo.
+echo Python was not found on the system or in the PATH var.
+echo.
+set /p "menu=Would you like to install it now? [y/n]: "
+if /i "!menu!"=="y" (
+    REM We got the OK - install it
+    goto installpy
+) else if "!menu!"=="n" (
+    REM No OK here...
+    set /a tried=%tried%+1
+    goto checkpy
+)
+REM Incorrect answer - go back
+goto askinstall
 
 :installpy
 REM This will attempt to download and install python
