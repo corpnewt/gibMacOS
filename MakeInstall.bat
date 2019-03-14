@@ -198,6 +198,7 @@ exit /b
 
 :runscript
 REM Python found
+cls
 if "%*"=="" (
     "!python!" "!thisDir!!script_name!"
 ) else (
