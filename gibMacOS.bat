@@ -4,7 +4,11 @@ setlocal enableDelayedExpansion
 REM Setup initial vars
 set "script_name=%~n0.command"
 set "thisDir=%~dp0"
+set /a tried=0
 
+goto checkscript
+
+:checkscript
 REM Check for our script first
 if not exist "!thisDir!\!script_name!" (
     echo Could not find !script_name!.
@@ -15,7 +19,9 @@ if not exist "!thisDir!\!script_name!" (
     pause > nul
     exit /b
 )
+goto checkpy
 
+:checkpy
 REM Get python location
 FOR /F "tokens=* USEBACKQ" %%F IN (`where python 2^> nul`) DO (
     SET "python=%%F"
@@ -23,23 +29,126 @@ FOR /F "tokens=* USEBACKQ" %%F IN (`where python 2^> nul`) DO (
 
 REM Check for py and give helpful hints!
 if /i "!python!"=="" (
-    echo Python is not installed or not found in your PATH var.
-    echo Please install it from https://www.python.org/downloads/windows/
-    echo.
-    echo Make sure you check the box labeled:
-    echo.
-    echo "Add Python X.X to PATH"
-    echo.
-    echo Where X.X is the py version you're installing.
-    echo.
-    echo Press [enter] to quit.
-    pause > nul
-    exit /b
+    if %tried% lss 1 (
+        goto installpy
+    ) else (
+        cls
+        echo   ###     ###
+        echo  # Warning #
+        echo ###     ###
+        REM Couldn't install for whatever reason - give the error message
+        echo Python is not installed or not found in your PATH var.
+        echo Please install it from https://www.python.org/downloads/windows/
+        echo.
+        echo Make sure you check the box labeled:
+        echo.
+        echo "Add Python X.X to PATH"
+        echo.
+        echo Where X.X is the py version you're installing.
+        echo.
+        echo Press [enter] to quit.
+        pause > nul
+        exit /b
+    )
+)
+goto runscript
+
+:installpy
+REM This will attempt to download and install python
+REM First we get the html for the python downloads page for Windows
+set /a tried=%tried%+1
+cls
+echo   ###               ###
+echo  # Installing Python #
+echo ###               ###
+echo.
+echo Gathering info from https://www.python.org/downloads/windows/...
+powershell -command "(new-object System.Net.WebClient).DownloadFile('https://www.python.org/downloads/windows/','%TEMP%\pyurl.txt')"
+if not exist "%TEMP%\pyurl.txt" (
+    goto checkpy
 )
 
+echo Parsing for latest...
+REM Got the file, let's parse it
+pushd "%TEMP%"
+set "release="
+for /F "tokens=*" %%x in (pyurl.txt) do (
+    set "t=%%x"
+    if /i not "%%x" == "" (
+        if /i not "!t:Latest Python 3=!"=="!t!" (
+            REM echo !t!
+            set "release=!t!"
+        )
+    )
+)
+popd
+
+REM Let's replace the " with ' and split the string by spaces
+REM to get the actual version number
+set "release=!release:"='!"
+for /F "tokens=8* delims= " %%x in ("!release!") do (
+    set "release=%%x"
+)
+REM Once more - split at the < and get the first
+for /F "tokens=1* delims=<" %%x in ("!release!") do (
+    set "release=%%x"
+)
+
+echo Found Python !release! -  Downloading...
+REM Let's delete our txt file now - we no longer need it
+del "%TEMP%\pyurl.txt"
+
+REM At this point - we should have the version number.
+REM We can build the url like so: "https://www.python.org/ftp/python/[version]/python-[version]-amd64.exe"
+set "url=https://www.python.org/ftp/python/!release!/python-!release!-amd64.exe"
+REM Now we download it with our slick powershell command
+powershell -command "(new-object System.Net.WebClient).DownloadFile('!url!','%TEMP%\pyinstall.exe')"
+REM If it doesn't exist - we bail
+if not exist "%TEMP%\pyinstall.exe" (
+    goto checkpy
+)
+REM It should exist at this point - let's run it to install silently
+echo Installing...
+echo pyinstall.exe /quiet PrependPath=1 Include_test=0 Shortcuts=0 Include_launcher=0
+pushd "%TEMP%"
+pyinstall.exe /quiet PrependPath=1 Include_test=0 Shortcuts=0 Include_launcher=0
+popd
+echo Installer finsihed with %ERRORLEVEL% status.
+REM Now we should be able to delete the installer and check for py again
+del "%TEMP%\pyinstall.exe"
+REM If it worked, then we should have python in our PATH
+REM this does not get updated right away though - let's try
+REM manually updating the local PATH var
+set "spath="
+set "upath="
+for /f "tokens=2* delims= " %%i in ('reg.exe query "HKCU\Environment" /v "Path" 2^> nul') do (
+    if NOT "%%j"=="" (
+		set "upath=%%j"
+	)
+)
+for /f "tokens=2* delims= " %%i in ('reg.exe query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "Path" 2^> nul') do (
+    if NOT "%%j"=="" (
+		set "spath=%%j"
+	)
+)
+if not "!spath!" == "" (
+    REM We got something in the system path
+    set "PATH=!spath!"
+    if not "!upath!" == "" (
+        REM We also have something in the user path
+        set "PATH=!PATH!;!upath!"
+    )
+) else if not "!upath!" == "" (
+    set "PATH=!upath!"
+)
+goto checkpy
+exit /b
+
+:runscript
 REM Python found
 if "%*"=="" (
     "!python!" "!thisDir!!script_name!"
 ) else (
     "!python!" "!thisDir!!script_name!" %*
 )
+goto :EOF
