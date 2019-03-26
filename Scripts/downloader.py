@@ -32,7 +32,7 @@ class Downloader:
             # Py2 and a Cert verify error - let's set the unverified context
             context = ssl._create_unverified_context()
             try:
-                response = urlopen(Request(url, headers=headers))
+                response = urlopen(Request(url, headers=headers), context=context)
             except:
                 # No fixing this - bail
                 return None
@@ -70,7 +70,6 @@ class Downloader:
                 b_s = self.get_size(bytes_so_far)
             sys.stdout.write("Downloaded {} of {} ({:.2f}%)\r".format(b_s, t_s, percent))
         else:
-            b_s = self.get_size(bytes_so_far)
             sys.stdout.write("Downloaded {}\r".format(b_s))
 
     def get_string(self, url, progress = True, headers = None):
