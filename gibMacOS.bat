@@ -89,7 +89,7 @@ echo  # Installing Python #
 echo ###               ###
 echo.
 echo Gathering info from https://www.python.org/downloads/windows/...
-powershell -command "(new-object System.Net.WebClient).DownloadFile('https://www.python.org/downloads/windows/','%TEMP%\pyurl.txt')"
+powershell -command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (new-object System.Net.WebClient).DownloadFile('https://www.python.org/downloads/windows/','%TEMP%\pyurl.txt')"
 if not exist "%TEMP%\pyurl.txt" (
     goto checkpy
 )
@@ -128,7 +128,7 @@ REM At this point - we should have the version number.
 REM We can build the url like so: "https://www.python.org/ftp/python/[version]/python-[version]-amd64.exe"
 set "url=https://www.python.org/ftp/python/!release!/python-!release!-amd64.exe"
 REM Now we download it with our slick powershell command
-powershell -command "(new-object System.Net.WebClient).DownloadFile('!url!','%TEMP%\pyinstall.exe')"
+powershell -command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (new-object System.Net.WebClient).DownloadFile('!url!','%TEMP%\pyinstall.exe')"
 REM If it doesn't exist - we bail
 if not exist "%TEMP%\pyinstall.exe" (
     goto checkpy
