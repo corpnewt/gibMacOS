@@ -47,7 +47,9 @@ class WinUSB:
         self.bi_name = "BOOTICEx64.exe"
         self.clover_url = "https://api.github.com/repos/dids/clover-builder/releases/latest"
         # From Tim Sutton's brigadier:  https://github.com/timsutton/brigadier/blob/master/brigadier
-        self.z_path = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Program Files", "7-Zip", "7z.exe")
+        self.z_path = None
+        self.z_path64 = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Program Files", "7-Zip", "7z.exe")
+        self.z_path32 = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Program Files (x86)", "7-Zip", "7z.exe")
         self.recovery_suffixes = (
             "recoveryhdupdate.pkg",
             "recoveryhdmetadmg.pkg"
@@ -120,9 +122,13 @@ class WinUSB:
         # Check for 7z.exe in Program Files and if not - download the 7z msi and install
         #
         # Returns True if found, False if not
-        if os.path.exists(self.z_path):
-            # print("Located {}!".format(self.z_name))
+        if os.path.exists(self.z_path64):
             # Got it
+            self.z_path = self.z_path64
+            return True
+        elif os.path.exists(self.z_path32):
+            # Found the 32 bit version
+            self.z_path = self.z_path32
             return True
         print("Didn't locate {} - downloading...".format(self.z_name))
         # Didn't find it - let's do some stupid stuff
