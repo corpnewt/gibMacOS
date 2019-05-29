@@ -570,6 +570,16 @@ class WinUSB:
         # We need to udpate the disk list though - to reflect the current file system on part 1
         # of our current disk
         self.d.update() # assumes our disk number stays the same
+        # Some users are having issues with the "partitions" key not populating - possibly a 3rd party disk management soft?
+        # Possibly a bad USB?
+        # We'll see if the key exists - if not, we'll throw an error.
+        if self.d.disks[str(disk["index"])].get("partitions",None) == None:
+            # No partitions found.
+            shutil.rmtree(temp,ignore_errors=True)
+            print("No partitions located on disk!")
+            print("")
+            self.u.grab("Press [enter] to return...")
+            return
         part = self.d.disks[str(disk["index"])]["partitions"].get("0",{}).get("letter",None) # get the first partition's letter
         if part == None:
             shutil.rmtree(temp,ignore_errors=True)
