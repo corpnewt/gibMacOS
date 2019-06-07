@@ -28,7 +28,11 @@ set "python="
 FOR /F "tokens=* USEBACKQ" %%F IN (`python -V 2^>^&1`) DO (
     set "t=%%F"
     if /i "!t:~0,6!" == "python" (
-        set "python=%%F"
+        REM Might have python installed - let's check for the store message
+        if /i "!t:was not found=!" == "!t!" (
+            REM There was no change - we found it.
+            set "python=%%F"
+        )
     )
 )
 
