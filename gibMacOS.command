@@ -344,6 +344,7 @@ class gibMacOS:
             self.pick_macos()
             return
         # At this point, we should be good
+        self.get_catalog_data()
 
     def main(self, dmg = False):
         self.u.head()
@@ -392,10 +393,8 @@ class gibMacOS:
             return
         elif menu[0].lower() == "m":
             self.pick_macos()
-            return
         elif menu[0].lower() == "c":
             self.pick_catalog()
-            return
         elif menu[0].lower() == "l" and sys.platform.lower() == "darwin":
             # Clear the software update catalog
             self.u.head("Clearing SU CatalogURL")
@@ -419,9 +418,10 @@ class gibMacOS:
             return
         elif menu[0].lower() == "r":
             self.find_recovery ^= True
+        if menu[0].lower() in ["m","c","r"]:
             self.u.head("Parsing Data")
             print("")
-            print("Re-scanning products after recovery preference toggled...")
+            print("Re-scanning products after url preference toggled...")
             self.mac_prods = self.get_dict_for_prods(self.get_installers())
             return
         
