@@ -23,21 +23,8 @@ if not exist "!thisDir!\!script_name!" (
 goto checkpy
 
 :checkpy
-REM Get python location
-set "python="
-FOR /F "tokens=* USEBACKQ" %%F IN (`python -V 2^>^&1`) DO (
-    set "t=%%F"
-    if /i "!t:~0,6!" == "python" (
-        REM Might have python installed - let's check for the store message
-        if /i "!t:was not found=!" == "!t!" (
-            REM There was no change - we found it.
-            set "python=%%F"
-        )
-    )
-)
-
-REM Check for py and give helpful hints!
-if /i "!python!"=="" (
+python -V > NUL 2>&1
+if not "!errorlevel!" == "0" (
     if %tried% lss 1 (
         if /i "!toask!"=="yes" (
             REM Better ask permission first
