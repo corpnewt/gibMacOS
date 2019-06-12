@@ -141,10 +141,28 @@ class gibMacOS:
                 if plist_dict.get("Products",{}).get(p,{}).get("ExtendedMetaInfo",{}).get("InstallAssistantPackageIdentifiers",{}).get("OSInstall",{}) == "com.apple.mpkg.OSInstall":
                     mac_prods.append(p)
             else:
-                # Find out if we have any of the recovert_suffixes
+                # Find out if we have any of the recovery_suffixes
                 if any(x for x in plist_dict.get("Products",{}).get(p,{}).get("Packages",[]) if x["URL"].endswith(self.recovery_suffixes)):
                     mac_prods.append(p)
         return mac_prods
+
+    def get_build_version(self, dist_dict):
+        build = version = "Unknown"
+        try:
+            dist_url = dist_dict.get("English","") if dist_dict.get("English",None) else dist_dict.get("en","")
+            dist_file = self.d.get_bytes(dist_url, False).decode("utf-8")
+        except:
+            dist_file = ""
+            pass
+        try:
+            build = dist_file.split("<key>BUILD</key>")[1].split("<string>")[1].split("</string>")[0]
+        except:
+            pass
+        try:
+            version = dist_file.split("<key>VERSION</key>")[1].split("<string>")[1].split("</string>")[0]
+        except:
+            pass
+        return (build,version)
 
     def get_dict_for_prods(self, prods, plist_dict = None):
         if plist_dict==self.catalog_data==None:
@@ -185,6 +203,11 @@ class gibMacOS:
             else:
                 # Add them all!
                 prodd["packages"] = plist_dict.get("Products",{}).get(prod,{}).get("Packages",[])
+            # Attempt to get the build/version info from the dist
+            b,v = self.get_build_version(plist_dict.get("Products",{}).get(prod,{}).get("Distributions",{}))
+            prodd["build"] = b
+            if not v.lower() == "unknown":
+                prodd["version"] = v
             prod_list.append(prodd)
         # Sort by newest
         prod_list = sorted(prod_list, key=lambda x:x["time"], reverse=True)
@@ -360,6 +383,8 @@ class gibMacOS:
         for p in self.mac_prods:
             num += 1
             var1 = "{}. {} {}".format(num, p["title"], p["version"])
+            if p["build"].lower() != "unknown":
+                var1 += " ({})".format(p["build"])
             var2 = "   - {} - Added {}".format(p["product"], p["date"])
             if self.find_recovery and p["installer"]:
                 # Show that it's a full installer
