@@ -154,12 +154,14 @@ class gibMacOS:
         except:
             dist_file = ""
             pass
+        build_search = "macOSProductBuildVersion" if "macOSProductBuildVersion" in dist_file else "BUILD"
+        vers_search  = "macOSProductVersion" if "macOSProductVersion" in dist_file else "VERSION"
         try:
-            build = dist_file.split("<key>BUILD</key>")[1].split("<string>")[1].split("</string>")[0]
+            build = dist_file.split("<key>{}</key>".format(build_search))[1].split("<string>")[1].split("</string>")[0]
         except:
             pass
         try:
-            version = dist_file.split("<key>VERSION</key>")[1].split("<string>")[1].split("</string>")[0]
+            version = dist_file.split("<key>{}</key>".format(vers_search))[1].split("<string>")[1].split("</string>")[0]
         except:
             pass
         return (build,version)
