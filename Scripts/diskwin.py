@@ -6,6 +6,7 @@ class Disk:
 
     def __init__(self):
         self.r = run.Run()
+        self.wmic = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Windows", "System32", "wbem", "WMIC.exe")
         self._update_disks()
 
     def update(self):
@@ -24,7 +25,7 @@ class Disk:
         #
         # May you all forgive me...
 
-        disks = self.r.run({"args":["wmic", "diskdrive", "get", "deviceid,model,index,size,partitions", "/format:csv"]})[0]
+        disks = self.r.run({"args":[self.wmic, "diskdrive", "get", "deviceid,model,index,size,partitions", "/format:csv"]})[0]
         csdisk = csv.reader(disks.replace("\r","").split("\n"), delimiter=",")
         disks = list(csdisk)
         if not len(disks) > 3:
@@ -57,7 +58,7 @@ class Disk:
             # Drat, nothing
             return p_disks
         # Let's find a shitty way to map this biz now
-        shit = self.r.run({"args":["wmic", "path", "Win32_LogicalDiskToPartition", "get", "antecedent,dependent"]})[0]
+        shit = self.r.run({"args":[self.wmic, "path", "Win32_LogicalDiskToPartition", "get", "antecedent,dependent"]})[0]
         shit = shit.replace("\r","").split("\n")[1:]
         for s in shit:
             s = s.lower()
@@ -76,7 +77,7 @@ class Disk:
                         p_disks[d]["partitions"] = {}
                     p_disks[d]["partitions"][p] = {"letter":mp}
         # Last attempt to do this - let's get the partition names!
-        parts = self.r.run({"args":["wmic", "logicaldisk", "get", "deviceid,filesystem,volumename,size,drivetype", "/format:csv"]})[0]
+        parts = self.r.run({"args":[self.wmic, "logicaldisk", "get", "deviceid,filesystem,volumename,size,drivetype", "/format:csv"]})[0]
         cspart = csv.reader(parts.replace("\r","").split("\n"), delimiter=",")
         parts = list(cspart)
         if not len(parts) > 2:
