@@ -194,7 +194,9 @@ exit /b
 :runscript
 REM Python found
 cls
-if "%*"=="" (
+set "args=%*"
+set "args=!args:"=!"
+if "!args!"=="" (
     python "!thisDir!!script_name!"
 ) else (
     python "!thisDir!!script_name!" %*
