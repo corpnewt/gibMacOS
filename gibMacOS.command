@@ -513,11 +513,11 @@ class gibMacOS:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-l", "--latest", help="downloads the version avaialble in the current catalog (overrides --version and --product)", action="store_true")
+    parser.add_argument("-l", "--latest", help="downloads the version available in the current catalog (overrides --version and --product)", action="store_true")
     parser.add_argument("-r", "--recovery", help="looks for RecoveryHDUpdate.pkg and RecoveryHDMetaDmg.pkg in lieu of com.apple.mpkg.OSInstall (overrides --dmg)", action="store_true")
     parser.add_argument("-d", "--dmg", help="downloads only the .dmg files", action="store_true")
     parser.add_argument("-s", "--savelocal", help="uses a locally saved sucatalog.plist if exists", action="store_true")
-    parser.add_argument("-n", "--newlocal", help="download and save locally, overwriting any prior local sucatalog.plist", action="store_true")
+    parser.add_argument("-n", "--newlocal", help="downloads and saves locally, overwriting any prior local sucatalog.plist", action="store_true")
     parser.add_argument("-c", "--catalog", help="sets the CATALOG to use - publicrelease, public, customer, developer")
     parser.add_argument("-p", "--product", help="sets the product id to search for (overrides --version)")
     parser.add_argument("-v", "--version", help="sets the version of macOS to target - eg '-v 10.14' or '-v Yosemite'")
