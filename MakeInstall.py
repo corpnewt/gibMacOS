@@ -43,7 +43,7 @@ class WinUSB:
                 "val" : "{23170F69-40C1-278A-1000-000100020000}"
             },
         ]
-        self.bi_url = "https://sites.google.com/site/gbrtools/home/software/bootice-portable/files/BOOTICE_v1.3.3.2.zip"
+        self.bi_url = "https://raw.githubusercontent.com/corpnewt/gibMacOS/master/Scripts/BOOTICEx64.exe"
         self.bi_name = "BOOTICEx64.exe"
         self.clover_url = "https://api.github.com/repos/dids/clover-builder/releases/latest"
         # From Tim Sutton's brigadier:  https://github.com/timsutton/brigadier/blob/master/brigadier
@@ -178,26 +178,8 @@ class WinUSB:
             # Got it
             return True
         print("Couldn't locate {} - downloading...".format(self.bi_name))
-        temp = tempfile.mkdtemp()
-        zfile = os.path.basename(self.bi_url)
-        print("Downloading {}...".format(os.path.basename(self.bi_url)))
-        self.dl.stream_to_file(self.bi_url, os.path.join(temp,zfile))
+        self.dl.stream_to_file(self.bi_url, os.path.join(self.s_path, self.bi_name))
         print("")
-        print(" - Extracting...")
-        # Extract with built-in tools \o/
-        os.chdir(temp)
-        with zipfile.ZipFile(os.path.join(temp,zfile)) as z:
-            z.extractall(temp)
-        for x in os.listdir(temp):
-            if self.bi_name.lower() in x.lower():
-                # Found it
-                print(" - Found {}".format(x))
-                print("   - Copying to {} directory...".format(self.scripts))
-                shutil.copy(os.path.join(temp,x), os.path.join(self.s_path,x))
-        # Return the cd to the local script dir
-        os.chdir(os.path.dirname(os.path.realpath(__file__)))
-        # Remove the temp folder
-        shutil.rmtree(temp,ignore_errors=True)
         return os.path.exists(os.path.join(self.s_path,self.bi_name))
 
     def get_dl_info(self):
