@@ -20,7 +20,7 @@ class WinUSB:
         self.z_url2 = "https://www.7-zip.org/a/7z1806-x64.msi"
         self.z_url  = "https://www.7-zip.org/a/7z[[vers]]-x64.msi"
         self.z_name = "7z.exe"
-        self.z_reg  = [
+        '''self.z_reg  = [
             {
                 "loc" : "HKLM\\Software\\Classes\\CLSID\\{23170F69-40C1-278A-1000-000100020000}",
                 "val" : "7-Zip Shell Extension"
@@ -31,18 +31,19 @@ class WinUSB:
                 "val" : "Apartment"
             },
             {
-                "loc" : "HKLM\\Software\\Classes\\*\\shellex\\ContextMenuHanders\\7-Zip",
+                "loc" : "HKLM\\Software\\Classes\\*\\shellex\\ContextMenuHandlers\\7-Zip",
                 "val" : "{23170F69-40C1-278A-1000-000100020000}"
             },
             {
-                "loc" : "HKLM\\Software\\Classes\\Directory\\shellex\\ContextMenuHanders\\7-Zip",
+                "loc" : "HKLM\\Software\\Classes\\Directory\\shellex\\ContextMenuHandlers\\7-Zip",
                 "val" : "{23170F69-40C1-278A-1000-000100020000}"
             },
             {
-                "loc" : "HKLM\\Software\\Classes\\Folder\\shellex\\ContextMenuHanders\\7-Zip",
+                "loc" : "HKLM\\Software\\Classes\\Folder\\shellex\\ContextMenuHandlers\\7-Zip",
                 "val" : "{23170F69-40C1-278A-1000-000100020000}"
             },
-        ]
+        ]'''
+        self.z_reg = []
         self.bi_url = "https://raw.githubusercontent.com/corpnewt/gibMacOS/master/Scripts/BOOTICEx64.exe"
         self.bi_name = "BOOTICEx64.exe"
         self.clover_url = "https://api.github.com/repos/dids/clover-builder/releases/latest"
@@ -136,10 +137,10 @@ class WinUSB:
         # looking for the current version
         dl_url = None
         try:
-            json = json.loads(self.dl.get_string(self.z_json))
-            v_num = json.get("release",{}).get("filename","").split("/")[-1].lower().replace("7z","").replace(".exe","")
+            json_data = json.loads(self.dl.get_string(self.z_json))
+            v_num = json_data.get("release",{}).get("filename","").split("/")[-1].lower().split("-")[0].replace("7z","").replace(".exe","")
             if len(v_num):
-                dl_url = self.url.replace("[[vers]]",v_num)
+                dl_url = self.z_url.replace("[[vers]]",v_num)
         except:
             pass
         if not dl_url:
@@ -149,8 +150,15 @@ class WinUSB:
         print("")
         print("Installing 7zip...")
         # From Tim Sutton's brigadier:  https://github.com/timsutton/brigadier/blob/master/brigadier
-        self.r.run({"args":["msiexec", "/qn", "/i", os.path.join(temp, self.z_name)],"stream":True})
-        print("Setting reg entries...")
+        out = self.r.run({"args":["msiexec", "/qn", "/i", os.path.join(temp, self.z_name)],"stream":True})
+        if out[2] != 0:
+            print("Error ({})".format(out[2]))
+            print("")
+            self.u.grab("Press [enter] to exit...")
+            exit(1)
+        # Set the z_path to the 64 bit
+        self.z_path = self.z_path64
+        '''print("Setting reg entries...")
         for x in self.z_reg:
             if not "val" in x or not "loc" in x:
                 continue
@@ -162,11 +170,15 @@ class WinUSB:
             if x.get("val",None):
                 args.extend(["/d",x["val"]])
             args.append("/f")
+            print(" ".join(args))
             out = self.r.run({"args":args})
+            print(out)
+            self.u.grab("Paused.")
             if out[2] != 0:
                 print("Error: {}".format(out[1]))
                 print("")
                 self.u.grab("Press [enter] to exit...")
+                exit(1)'''
         print("")
         return os.path.exists(self.z_path)
 
