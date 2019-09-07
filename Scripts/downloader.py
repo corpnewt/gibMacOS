@@ -44,9 +44,6 @@ class Downloader:
         # use_2014 denotes whether or not we display in MiB vs MB
         # round_to is the number of dedimal points to round our result to (0-15)
         # strip_zeroes denotes whether we strip out zeroes 
-        #   True:   Strip all 0s from the right of the decimal and remove decimal if needed
-        #   False:  Show the number as-is
-        #   0-10:   Set the number of decimal places from 0 to 10
 
         # Failsafe in case our size is unknown
         if size == -1:
