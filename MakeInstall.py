@@ -164,36 +164,6 @@ class WinUSB:
             return None
         return { "url" : dl_link, "name" : os.path.basename(dl_link), "info" : j.get("body", None) }
 
-    def get_size(self, size):
-        # Returns the size passed as human readable
-        if size == -1:
-            return "Unknown"
-        ext = ["B","KB","MB","GB","TB","PB"]
-        s = float(size)
-        s_dict = {}
-        # Iterate the ext list, and divide by 1000 each time
-        for e in ext:
-            s_dict[e] = s
-            s /= 1000
-        # Get the maximum >= 1 type
-        biggest = next((x for x in ext[::-1] if s_dict[x] >= 1), "B")
-        # Round to 2 decimal places
-        bval = round(s_dict[biggest], 2)
-        # Strip any orphaned, trailing 0's
-        non_zero = False
-        z_list = []
-        for z in str(bval).split(".")[1][::-1]:
-            if z == "0" and not non_zero:
-                # We have a zero - and haven't hit a non-zero yet
-                continue
-            # Either got a non-zero, or non_zero is already set
-            non_zero = True # Set again - just in case
-            z_list.append(z)
-        if len(z_list):
-            return "{}.{} {}".format(str(bval).split(".")[0], "".join(z_list[::-1]), biggest)
-        else:
-            return "{} {}".format(str(bval).split(".")[0], biggest)
-
     def diskpart_flag(self, disk, as_efi=False):
         # Sets and unsets the GUID needed for a GPT EFI partition ID
         self.u.head("Changing ID With DiskPart")
@@ -300,7 +270,7 @@ class WinUSB:
         print("{}. {} - {} ({})".format(
             disk.get("index",-1), 
             disk.get("model","Unknown"), 
-            self.get_size(disk.get("size",-1)),
+            self.dl.get_size(disk.get("size",-1),strip_zeroes=True),
             ["Unknown","No Root Dir","Removable","Local","Network","Disc","RAM Disk"][disk.get("type",0)]
             ))
         print("")
@@ -400,7 +370,7 @@ class WinUSB:
         print("Disk {}. {} - {} ({})".format(
             disk.get("index",-1), 
             disk.get("model","Unknown"), 
-            self.get_size(disk.get("size",-1)),
+            self.dl.get_size(disk.get("size",-1),strip_zeroes=True),
             ["Unknown","No Root Dir","Removable","Local","Network","Disc","RAM Disk"][disk.get("type",0)]
             ))
         print("")
@@ -631,7 +601,7 @@ class WinUSB:
             print("{}. {} - {} ({})".format(
                 disk, 
                 rem_disks[disk].get("model","Unknown"), 
-                self.get_size(rem_disks[disk].get("size",-1)),
+                self.dl.get_size(rem_disks[disk].get("size",-1),strip_zeroes=True),
                 ["Unknown","No Root Dir","Removable","Local","Network","Disc","RAM Disk"][rem_disks[disk].get("type",0)]
                 ))
             if not len(rem_disks[disk].get("partitions",{})):
@@ -644,12 +614,12 @@ class WinUSB:
                         parts[p].get("letter","No Letter"),
                         "No Name" if not parts[p].get("name",None) else parts[p].get("name","No Name"),
                         parts[p].get("file system","Unknown FS"),
-                        self.get_size(parts[p].get("size",-1))
+                        self.dl.get_size(parts[p].get("size",-1),strip_zeroes=True)
                     ))
         print("")
         print("Q. Quit")
         print("")
-        print("Usage: [drive][option (only one allowed)] (eg. 1C)")
+        print("Usage: [drive number][option (only one allowed)] (eg. 1C)")
         print("  Options are as follows with precedence C > E > U > G:")
         print("    C = Only install Clover to the drive's first partition.")
         print("    E = Sets the type of the drive's first partition to EFI.")
@@ -700,7 +670,7 @@ class WinUSB:
                 print("{}. {} - {} ({})".format(
                     selected_disk.get("index",-1), 
                     selected_disk.get("model","Unknown"), 
-                    self.get_size(selected_disk.get("size",-1)),
+                    self.dl.get_size(selected_disk.get("size",-1),strip_zeroes=True),
                     ["Unknown","No Root Dir","Removable","Local","Network","Disc","RAM Disk"][selected_disk.get("type",0)]
                     ))
                 print("")
@@ -718,5 +688,6 @@ class WinUSB:
             self.diskpart_erase(selected_disk, use_gpt)
         self.main()
 
-w = WinUSB()
-w.main()
+if __name__ == '__main__':
+    w = WinUSB()
+    w.main()
