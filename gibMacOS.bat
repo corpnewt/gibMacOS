@@ -90,30 +90,10 @@ if not exist "%TEMP%\pyurl.txt" (
 )
 
 echo Parsing for latest...
-REM Got the file, let's parse it
 pushd "%TEMP%"
-set "release="
-for /F "tokens=*" %%x in (pyurl.txt) do (
-    set "t=%%x"
-    if /i not "%%x" == "" (
-        if /i not "!t:Latest Python 3=!"=="!t!" (
-            REM echo !t!
-            set "release=!t!"
-        )
-    )
-)
+:: Version detection code slimmed by LussacZheng (https://github.com/corpnewt/gibMacOS/issues/20)
+for /f "tokens=9 delims=< " %%x in ('findstr /i /c:"Latest Python 3 Release" pyurl.txt') do ( set "release=%%x" )
 popd
-
-REM Let's replace the " with ' and split the string by spaces
-REM to get the actual version number
-set "release=!release:"='!"
-for /F "tokens=8* delims= " %%x in ("!release!") do (
-    set "release=%%x"
-)
-REM Once more - split at the < and get the first
-for /F "tokens=1* delims=<" %%x in ("!release!") do (
-    set "release=%%x"
-)
 
 echo Found Python !release! -  Downloading...
 REM Let's delete our txt file now - we no longer need it
