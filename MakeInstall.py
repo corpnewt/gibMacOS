@@ -39,6 +39,7 @@ class WinUSB:
         self.bas_id = "ebd0a0a2-b9e5-4433-87c0-68b6b72699c7" # Microsoft Basic Data
         self.hfs_id = "48465300-0000-11AA-AA11-00306543ECAC" # HFS+
         self.rec_id = "426F6F74-0000-11AA-AA11-00306543ECAC" # Apple Boot partition (Recovery HD)
+        self.show_all_disks = False
     
     def verify_os(self):
         self.u.head("Verifying OS")
@@ -586,16 +587,18 @@ class WinUSB:
         # Let's serve up a list of *only* removable media
         self.u.head("Potential Removable Media")
         print("")
-        rem_disks = self.get_disks_of_type(self.d.disks)
-
-        # SHOWING ALL DISKS CURRENTLY - CHANGE THIS FOR RELEASE!!!!
-        # rem_disks = self.d.disks
+        rem_disks = self.get_disks_of_type(self.d.disks) if not self.show_all_disks else self.d.disks
 
         # Types: 0 = Unknown, 1 = No Root Dir, 2 = Removable, 3 = Local, 4 = Network, 5 = Disc, 6 = RAM disk
 
-        print("!WARNING!  This list includes both Removable AND")
-        print("!WARNING!  Unknown disk types.  Be ABSOLUTELY sure")
-        print("!WARNING!  before selecting a disk!")
+        if self.show_all_disks:
+            print("!WARNING!  This list includes ALL disk types.")
+            print("!WARNING!  Be ABSOLUTELY sure before selecting")
+            print("!WARNING!  a disk!")
+        else:
+            print("!WARNING!  This list includes both Removable AND")
+            print("!WARNING!  Unknown disk types.  Be ABSOLUTELY sure")
+            print("!WARNING!  before selecting a disk!")
         print("")
         for disk in sorted(rem_disks):
             print("{}. {} - {} ({})".format(
@@ -625,6 +628,7 @@ class WinUSB:
         print("    E = Sets the type of the drive's first partition to EFI.")
         print("    U = Similar to E, but sets the type to Basic Data (useful for editing).")
         print("    G = Format as GPT (default is MBR).")
+        print("    D = Used without a drive number, toggles showing all disks.")
         print("")
         menu = self.u.grab("Please select a disk or press [enter] with no options to refresh:  ")
         if not len(menu):
@@ -632,6 +636,10 @@ class WinUSB:
             return
         if menu.lower() == "q":
             self.u.custom_quit()
+        if menu.lower() == "d":
+            self.show_all_disks ^= True
+            self.main()
+            return
         only_clover = set_efi = unset_efi = use_gpt = False
         if "c" in menu.lower():
             only_clover = True
