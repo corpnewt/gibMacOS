@@ -1,6 +1,10 @@
 import subprocess, plistlib, sys, os, time, json
 sys.path.append(os.path.abspath(os.path.dirname(os.path.realpath(__file__))))
 import run
+if sys.version_info < (3,0):
+    # Force use of StringIO instead of cStringIO as the latter
+    # has issues with Unicode strings
+    from StringIO import StringIO
 
 class Disk:
 
@@ -21,8 +25,8 @@ class Disk:
 
     def _get_str(self, val):
         # Helper method to return a string value based on input type
-        if (sys.version_info < (3,0) and isinstance(val, (str, unicode))) or (sys.version_info >= (3,0) and isinstance(val, str)):
-            return val
+        if (sys.version_info < (3,0) and isinstance(val, unicode)) or (sys.version_info >= (3,0) and isinstance(val, bytes)):
+            return val.encode("utf-8")
         return str(val)
 
     def _get_plist(self, s):
@@ -31,8 +35,33 @@ class Disk:
             if sys.version_info >= (3, 0):
                 p = plistlib.loads(s.encode("utf-8"))
             else:
-                p = plistlib.readPlistFromString(s.encode("utf-8"))
-        except:
+                # p = plistlib.readPlistFromString(s)
+                # We avoid using readPlistFromString() as that uses
+                # cStringIO and fails when Unicode strings are detected
+                # Don't subclass - keep the parser local
+                from xml.parsers.expat import ParserCreate
+                # Create a new PlistParser object - then we need to set up
+                # the values and parse.
+                pa = plistlib.PlistParser()
+                # We also monkey patch this to encode unicode as utf-8
+                def end_string():
+                    d = pa.getData()
+                    if isinstance(d,unicode):
+                        d = d.encode("utf-8")
+                    pa.addObject(d)
+                pa.end_string = end_string
+                parser = ParserCreate()
+                parser.StartElementHandler = pa.handleBeginElement
+                parser.EndElementHandler = pa.handleEndElement
+                parser.CharacterDataHandler = pa.handleData
+                if isinstance(s, unicode):
+                    # Encode unicode -> string; use utf-8 for safety
+                    s = s.encode("utf-8")
+                # Parse the string
+                parser.Parse(s, 1)
+                p = pa.root
+        except Exception as e:
+            print(e)
             pass
         return p
 
@@ -189,7 +218,7 @@ class Disk:
         # Iterate!!
         if not disk or not len(self._get_str(disk)):
             return None
-        disk = disk.lower()
+        disk = self._get_str(disk).lower()
         if disk.startswith("/dev/r"):
             disk = disk[len("/dev/r"):]
         elif disk.startswith("/dev/"):
@@ -198,10 +227,10 @@ class Disk:
             return disk
         for d in self.disks.get("AllDisksAndPartitions", []):
             for a in d.get("APFSVolumes", []):
-                if disk in [ a.get(x, "").lower() for x in ["DeviceIdentifier", "VolumeName", "VolumeUUID", "DiskUUID", "MountPoint"] ]:
+                if disk in [ self._get_str(a.get(x, "")).lower() for x in ["DeviceIdentifier", "VolumeName", "VolumeUUID", "DiskUUID", "MountPoint"] ]:
                     return a.get("DeviceIdentifier", None)
             for a in d.get("Partitions", []):
-                if disk in [ a.get(x, "").lower() for x in ["DeviceIdentifier", "VolumeName", "VolumeUUID", "DiskUUID", "MountPoint"] ]:
+                if disk in [ self._get_str(a.get(x, "")).lower() for x in ["DeviceIdentifier", "VolumeName", "VolumeUUID", "DiskUUID", "MountPoint"] ]:
                     return a.get("DeviceIdentifier", None)
         # At this point, we didn't find it
         return None
