@@ -1,4 +1,4 @@
-from Scripts import *
+from Scripts import utils, diskwin, downloader, run
 import os, sys, tempfile, shutil, zipfile, platform, json, time
 
 class WinUSB:
