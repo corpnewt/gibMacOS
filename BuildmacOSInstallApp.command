@@ -12,6 +12,7 @@ class buildMacOSInstallApp:
             "BaseSystem.dmg",
             "BaseSystem.chunklist",
             "InstallESDDmg.pkg",
+            "InstallInfo.plist",
             "AppleDiagnostics.dmg",
             "AppleDiagnostics.chunklist"
         ]
@@ -128,6 +129,17 @@ class buildMacOSInstallApp:
                     out = self.r.run({"args":["cp","-R",os.path.join(f_path,x),os.path.join(shared_support,y)]})
                     if out[2] != 0:
                         raise Exception("Copy Failed!", out[1])
+                print("Patching InstallInfo.plist...")
+                with open(os.path.join(shared_support,"InstallInfo.plist"),"rb") as f:
+                    p = plist.load(f)
+                if "Payload Image Info" in p:
+                    pii = p["Payload Image Info"]
+                    if "URL" in pii: pii["URL"] = pii["URL"].replace("InstallESDDmg.pkg","InstallESD.dmg")
+                    if "id" in pii: pii["id"] = pii["id"].replace("com.apple.pkg.InstallESDDmg","com.apple.dmg.InstallESD")
+                    pii.pop("chunklistURL",None)
+                    pii.pop("chunklistid",None)
+                with open(os.path.join(shared_support,"InstallInfo.plist"),"wb") as f:
+                    plist.dump(p,f)
                 print("")
                 print("Created:  {}".format(install_app))
                 print("Saved to: {}".format(os.path.join(f_path,install_app)))
