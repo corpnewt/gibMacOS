@@ -34,7 +34,7 @@ if not exist "!thisDir!\!script_name!" (
 goto checkpy
 
 :checkpy
-for /f "tokens=1" %%x in ('where python') do ( call :checkpyversion "%%x" "py2v" "py2path" "py3v" "py3path" )
+for /f "tokens=*" %%x in ('where python') do ( call :checkpyversion "%%x" "py2v" "py2path" "py3v" "py3path" )
 set "targetpy=3"
 if /i "!use_py3!" == "FALSE" (
     set "targetpy=2"
