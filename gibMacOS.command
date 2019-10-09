@@ -17,7 +17,7 @@ class gibMacOS:
             "customer" : "customerseed",
             "developer" : "seed"
         }
-        self.current_macos = 14
+        self.current_macos = 15
         self.min_macos = 5
         self.mac_os_names_url = {
             "8" : "mountainlion",
@@ -36,7 +36,8 @@ class gibMacOS:
             "el capitan" : "10.11",
             "sierra" : "10.12",
             "high sierra" : "10.13",
-            "mojave" : "10.14"
+            "mojave" : "10.14",
+            "catalina" : "10.15"
         }
         self.current_catalog = "publicrelease"
         self.catalog_data    = None
