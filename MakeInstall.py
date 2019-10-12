@@ -22,7 +22,8 @@ class WinUSB:
         self.z_name = "7z.exe"
         self.bi_url = "https://raw.githubusercontent.com/corpnewt/gibMacOS/master/Scripts/BOOTICEx64.exe"
         self.bi_name = "BOOTICEx64.exe"
-        self.clover_url = "https://api.github.com/repos/dids/clover-builder/releases/latest"
+        # self.clover_url = "https://api.github.com/repos/dids/clover-builder/releases/latest"
+        self.clover_url = "https://api.github.com/repos/CloverHackyColor/CloverBootloader/releases/latest"
         # From Tim Sutton's brigadier:  https://github.com/timsutton/brigadier/blob/master/brigadier
         self.z_path = None
         self.z_path64 = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Program Files", "7-Zip", "7z.exe")
