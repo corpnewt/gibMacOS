@@ -98,16 +98,8 @@ class WinUSB:
         return os.path.exists(os.path.join(self.s_path, self.dd_name))
 
     def check_7z(self):
-        # Check for 7z.exe in Program Files and if not - download the 7z msi and install
-        #
-        # Returns True if found, False if not
-        if os.path.exists(self.z_path64):
-            # Got it
-            self.z_path = self.z_path64
-            return True
-        elif os.path.exists(self.z_path32):
-            # Found the 32 bit version
-            self.z_path = self.z_path32
+        self.z_path = self.z_path64 if os.path.exists(self.z_path64) else self.z_path32 if os.path.exists(self.z_path32) else None
+        if self.z_path:
             return True
         print("Didn't locate {} - downloading...".format(self.z_name))
         # Didn't find it - let's do some stupid stuff
@@ -124,20 +116,23 @@ class WinUSB:
         if not dl_url:
             dl_url = self.z_url2
         temp = tempfile.mkdtemp()
-        self.dl.stream_to_file(dl_url, os.path.join(temp, self.z_name))
+        dl_file = self.dl.stream_to_file(dl_url, os.path.join(temp, self.z_name))
+        if not dl_file: # Didn't download right
+            shutil.rmtree(temp,ignore_errors=True)
+            return False
         print("")
         print("Installing 7zip...")
         # From Tim Sutton's brigadier:  https://github.com/timsutton/brigadier/blob/master/brigadier
         out = self.r.run({"args":["msiexec", "/qn", "/i", os.path.join(temp, self.z_name)],"stream":True})
         if out[2] != 0:
+            shutil.rmtree(temp,ignore_errors=True)
             print("Error ({})".format(out[2]))
             print("")
             self.u.grab("Press [enter] to exit...")
             exit(1)
-        # Set the z_path to the 64 bit
-        self.z_path = self.z_path64
         print("")
-        return os.path.exists(self.z_path)
+        self.z_path = self.z_path64 if os.path.exists(self.z_path64) else self.z_path32 if os.path.exists(self.z_path32) else None
+        return self.z_path and os.path.exists(self.z_path)
 
     def check_bi(self):
         # Checks for BOOTICEx64.exe in our scripts dir
@@ -418,6 +413,7 @@ class WinUSB:
         self.dl.stream_to_file(c["url"], os.path.join(temp, c["name"]))
         print("") # Empty space to clear the download progress
         if not os.path.exists(os.path.join(temp, c["name"])):
+            shutil.rmtree(temp,ignore_errors=True)
             print(" - Download failed.  Aborting...")
             print("")
             self.u.grab("Press [enter] to return...")
@@ -434,6 +430,7 @@ class WinUSB:
         # Should result in a .tar file
         clover_tar = next((x for x in os.listdir(temp) if x.lower().endswith(".tar")),None)
         if not clover_tar:
+            shutil.rmtree(temp,ignore_errors=True)
             print(" - No .tar archive found - aborting...")
             print("")
             self.u.grab("Press [enter] to return...")
@@ -450,6 +447,7 @@ class WinUSB:
         # Should result in a .iso file
         clover_iso = next((x for x in os.listdir(temp) if x.lower().endswith(".iso")),None)
         if not clover_tar:
+            shutil.rmtree(temp,ignore_errors=True)
             print(" - No .iso found - aborting...")
             print("")
             self.u.grab("Press [enter] to return...")
@@ -570,13 +568,16 @@ class WinUSB:
         self.u.head("Checking Required Tools")
         print("")
         if not self.check_dd():
-            print("Couldn't find or install {} - aborting!".format(self.dd_name))
+            print("Couldn't find or install {} - aborting!\n".format(self.dd_name))
+            self.u.grab("Press [enter] to exit...")
             exit(1)
         if not self.check_7z():
-            print("Couldn't find or install {} - aborting!".format(self.z_name))
+            print("Couldn't find or install {} - aborting!\n".format(self.z_name))
+            self.u.grab("Press [enter] to exit...")
             exit(1)
         if not self.check_bi():
-            print("Couldn't find or install {} - aborting!".format(self.bi_name))
+            print("Couldn't find or install {} - aborting!\n".format(self.bi_name))
+            self.u.grab("Press [enter] to exit...")
             exit(1)
         # Let's just setup a real simple interface and try to write some data
         self.u.head("Gathering Disk Info")
