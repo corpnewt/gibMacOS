@@ -33,7 +33,25 @@ if not exist "!thisDir!\!script_name!" (
 )
 goto checkpy
 
+:updatepath
+set "spath="
+set "upath="
+for /f "tokens=2* delims= " %%i in ('reg.exe query "HKCU\Environment" /v "Path" 2^> nul') do ( if not "%%j" == "" set "upath=%%j" )
+for /f "tokens=2* delims= " %%i in ('reg.exe query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "Path" 2^> nul') do ( if not "%%j" == "" set "spath=%%j" )
+if not "!spath!" == "" (
+    REM We got something in the system path
+    set "PATH=!spath!"
+    if not "!upath!" == "" (
+        REM We also have something in the user path
+        set "PATH=!PATH!;!upath!"
+    )
+) else if not "!upath!" == "" (
+    set "PATH=!upath!"
+)
+goto :EOF
+
 :checkpy
+call :updatepath
 for /f "tokens=*" %%x in ('where python') do ( call :checkpyversion "%%x" "py2v" "py2path" "py3v" "py3path" )
 set "targetpy=3"
 if /i "!use_py3!" == "FALSE" (
@@ -213,20 +231,7 @@ del "%TEMP%\pyinstall.!pytype!"
 REM If it worked, then we should have python in our PATH
 REM this does not get updated right away though - let's try
 REM manually updating the local PATH var
-set "spath="
-set "upath="
-for /f "tokens=2* delims= " %%i in ('reg.exe query "HKCU\Environment" /v "Path" 2^> nul') do ( if not "%%j" == "" set "upath=%%j" )
-for /f "tokens=2* delims= " %%i in ('reg.exe query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "Path" 2^> nul') do ( if not "%%j" == "" set "spath=%%j" )
-if not "!spath!" == "" (
-    REM We got something in the system path
-    set "PATH=!spath!"
-    if not "!upath!" == "" (
-        REM We also have something in the user path
-        set "PATH=!PATH!;!upath!"
-    )
-) else if not "!upath!" == "" (
-    set "PATH=!upath!"
-)
+call :updatepath
 goto checkpy
 exit /b
 
