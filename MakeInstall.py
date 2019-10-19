@@ -23,7 +23,8 @@ class WinUSB:
         self.bi_url = "https://raw.githubusercontent.com/corpnewt/gibMacOS/master/Scripts/BOOTICEx64.exe"
         self.bi_name = "BOOTICEx64.exe"
         # self.clover_url = "https://api.github.com/repos/dids/clover-builder/releases/latest"
-        self.clover_url = "https://api.github.com/repos/CloverHackyColor/CloverBootloader/releases/latest"
+        # self.clover_url = "https://api.github.com/repos/CloverHackyColor/CloverBootloader/releases/latest"
+        self.clover_url = "https://api.github.com/repos/CloverHackyColor/CloverBootloader/releases"
         # From Tim Sutton's brigadier:  https://github.com/timsutton/brigadier/blob/master/brigadier
         self.z_path = None
         self.z_path64 = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Program Files", "7-Zip", "7z.exe")
@@ -153,10 +154,12 @@ class WinUSB:
         if not json_data or not len(json_data):
             return None
         try:
-            j = json.loads(json_data)
+            j_list = json.loads(json_data)
         except:
             return None
-        dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").lower().endswith(".lzma")), None)
+        for j in j_list:
+            dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").lower().endswith(".lzma")), None)
+            if dl_link: break
         if not dl_link:
             return None
         return { "url" : dl_link, "name" : os.path.basename(dl_link), "info" : j.get("body", None) }
