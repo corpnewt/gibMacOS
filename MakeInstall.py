@@ -605,7 +605,7 @@ class WinUSB:
             print("!WARNING!  Unknown disk types.  Be ABSOLUTELY sure")
             print("!WARNING!  before selecting a disk!")
         print("")
-        for disk in sorted(rem_disks):
+        for disk in sorted(rem_disks,key=lambda x:int(x)):
             print("{}. {} - {} ({})".format(
                 disk, 
                 rem_disks[disk].get("model","Unknown"), 
@@ -616,7 +616,7 @@ class WinUSB:
                 print("   No Mounted Partitions")
             else:
                 parts = rem_disks[disk]["partitions"]
-                for p in sorted(parts):
+                for p in sorted(parts,key=lambda x:int(x)):
                     print("   {}. {} ({}) {} - {}".format(
                         p,
                         parts[p].get("letter","No Letter"),
