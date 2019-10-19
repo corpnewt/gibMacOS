@@ -221,7 +221,7 @@ class gibMacOS:
         self.resize()
         cwd = os.getcwd()
         os.chdir(os.path.dirname(os.path.realpath(__file__)))
-        name = "{} - {} {}".format(prod["product"], prod["version"], prod["title"])
+        name = "{} - {} {}".format(prod["product"], prod["version"], prod["title"]).replace(":","")
         if os.path.exists(os.path.join(os.getcwd(), self.saves, self.current_catalog, name)):
             while True:
                 self.u.head("Already Exists")
