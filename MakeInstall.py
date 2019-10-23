@@ -151,9 +151,11 @@ class WinUSB:
 
     def get_dl_info(self):
         self.u.head("Choose the Bootloader")
+        print("")
         print("O. OpenCore")
         print("C. Clover")
         print("Q. Quit")
+        print("")
         menu = self.u.grab("Please select a bootloader or press [enter] with no options to refresh:  ")
         if not len(menu):
             self.main()
@@ -187,7 +189,7 @@ class WinUSB:
             except:
                 return None
             for j in j_list:
-                dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").lower().endswith("RELEASE.zip")), None)
+                dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").lower().endswith("release.zip")), None)
                 if dl_link: break
             if not dl_link:
                 return None
