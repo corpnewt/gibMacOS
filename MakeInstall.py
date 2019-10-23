@@ -164,36 +164,25 @@ class WinUSB:
             self.u.custom_quit()
         if menu.lower() == "c":
             self.bootloader = "Clover"
-            # Returns the latest download package and info in a
-            # dictionary:  { "url" : dl_url, "name" : name, "info" : update_info }
             json_data = self.dl.get_string(self.clover_url, False)
-            if not json_data or not len(json_data):
-                return None
-            try:
-                j_list = json.loads(json_data)
-            except:
-                return None
-            for j in j_list:
-                dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").lower().endswith(".lzma")), None)
-                if dl_link: break
-            if not dl_link:
-                return None
-            return { "url" : dl_link, "name" : os.path.basename(dl_link), "info" : j.get("body", None) }
         if menu.lower() == "o":
             self.bootloader = "OpenCore"
             json_data = self.dl.get_string(self.oc_url, False)
-            if not json_data or not len(json_data):
-                return None
-            try:
-                j_list = json.loads(json_data)
-            except:
-                return None
-            for j in j_list:
+        if not json_data or not len(json_data):
+            return None
+        try:
+            j_list = json.loads(json_data)
+        except:
+            return None
+        for j in j_list:
+            if self.bootloader == "Clover":
+                dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").lower().endswith(".lzma")), None)
+            elif self.bootloader == "OpenCore":
                 dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").lower().endswith("release.zip")), None)
-                if dl_link: break
-            if not dl_link:
-                return None
-            return { "url" : dl_link, "name" : os.path.basename(dl_link), "info" : j.get("body", None) }
+            if dl_link: break
+        if not dl_link:
+            return None
+        return { "url" : dl_link, "name" : os.path.basename(dl_link), "info" : j.get("body", None) }
 
     def diskpart_flag(self, disk, as_efi=False):
         # Sets and unsets the GUID needed for a GPT EFI partition ID
