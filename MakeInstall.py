@@ -671,7 +671,7 @@ class WinUSB:
         print("")
         print("Usage: [drive number][option (only one allowed)] (eg. 1C)")
         print("  Options are as follows with precedence C > E > U > G:")
-        print("    C = Only install Clover to the drive's first partition.")
+        print("    C = Only install bootloader to the drive's first partition.")
         print("    E = Sets the type of the drive's first partition to EFI.")
         print("    U = Similar to E, but sets the type to Basic Data (useful for editing).")
         print("    G = Format as GPT (default is MBR).")
