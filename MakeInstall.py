@@ -25,6 +25,7 @@ class WinUSB:
         # self.clover_url = "https://api.github.com/repos/dids/clover-builder/releases/latest"
         # self.clover_url = "https://api.github.com/repos/CloverHackyColor/CloverBootloader/releases/latest"
         self.clover_url = "https://api.github.com/repos/CloverHackyColor/CloverBootloader/releases"
+        self.oc_url = "https://api.github.com/repos/Acidanthera/OpenCorePkg/releases"
         # From Tim Sutton's brigadier:  https://github.com/timsutton/brigadier/blob/master/brigadier
         self.z_path = None
         self.z_path64 = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Program Files", "7-Zip", "7z.exe")
@@ -42,6 +43,7 @@ class WinUSB:
         self.hfs_id = "48465300-0000-11AA-AA11-00306543ECAC" # HFS+
         self.rec_id = "426F6F74-0000-11AA-AA11-00306543ECAC" # Apple Boot partition (Recovery HD)
         self.show_all_disks = False
+        self.bootloader = ""
     
     def verify_os(self):
         self.u.head("Verifying OS")
@@ -148,21 +150,48 @@ class WinUSB:
         return os.path.exists(os.path.join(self.s_path,self.bi_name))
 
     def get_dl_info(self):
-        # Returns the latest download package and info in a
-        # dictionary:  { "url" : dl_url, "name" : name, "info" : update_info }
-        json_data = self.dl.get_string(self.clover_url, False)
-        if not json_data or not len(json_data):
-            return None
-        try:
-            j_list = json.loads(json_data)
-        except:
-            return None
-        for j in j_list:
-            dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").lower().endswith(".lzma")), None)
-            if dl_link: break
-        if not dl_link:
-            return None
-        return { "url" : dl_link, "name" : os.path.basename(dl_link), "info" : j.get("body", None) }
+        self.u.head("Choose the Bootloader")
+        print("O. OpenCore")
+        print("C. Clover")
+        print("Q. Quit")
+        menu = self.u.grab("Please select a bootloader or press [enter] with no options to refresh:  ")
+        if not len(menu):
+            self.main()
+            return
+        if menu.lower() == "q":
+            self.u.custom_quit()
+        if menu.lower() == "c":
+            self.bootloader = "Clover"
+            # Returns the latest download package and info in a
+            # dictionary:  { "url" : dl_url, "name" : name, "info" : update_info }
+            json_data = self.dl.get_string(self.clover_url, False)
+            if not json_data or not len(json_data):
+                return None
+            try:
+                j_list = json.loads(json_data)
+            except:
+                return None
+            for j in j_list:
+                dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").lower().endswith(".lzma")), None)
+                if dl_link: break
+            if not dl_link:
+                return None
+            return { "url" : dl_link, "name" : os.path.basename(dl_link), "info" : j.get("body", None) }
+        if menu.lower() == "o":
+            self.bootloader = "OpenCore"
+            json_data = self.dl.get_string(self.oc_url, False)
+            if not json_data or not len(json_data):
+                return None
+            try:
+                j_list = json.loads(json_data)
+            except:
+                return None
+            for j in j_list:
+                dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").lower().endswith("RELEASE.zip")), None)
+                if dl_link: break
+            if not dl_link:
+                return None
+            return { "url" : dl_link, "name" : os.path.basename(dl_link), "info" : j.get("body", None) }
 
     def diskpart_flag(self, disk, as_efi=False):
         # Sets and unsets the GUID needed for a GPT EFI partition ID
@@ -218,7 +247,7 @@ class WinUSB:
                 "clean",
                 "convert mbr",
                 "create partition primary size=200",
-                "format quick fs=fat32 label='CLOVER'",
+                "format quick fs=fat32 label='EFI'",
                 "active",
                 "create partition primary id=AB" # AF = HFS, AB = Recovery
             ])
@@ -229,7 +258,7 @@ class WinUSB:
                 "clean",
                 "convert gpt",
                 "create partition primary size=200",
-                "format quick fs=fat32 label='CLOVER'",
+                "format quick fs=fat32 label='EFI'",
                 "create partition primary id={}".format(self.hfs_id)
             ])
         temp = tempfile.mkdtemp()
@@ -399,7 +428,7 @@ class WinUSB:
         self.install_clover(disk)
 
     def install_clover(self, disk):
-        self.u.head("Installing Clover")
+        self.u.head("Installing {}".format(self.bootloader))
         print("")
         print("Gathering info...")
         c = self.get_dl_info()
@@ -412,7 +441,7 @@ class WinUSB:
         print("Downloading...")
         temp = tempfile.mkdtemp()
         os.chdir(temp)
-        clover_lzma = c["name"]
+        bootloader_zip = c["name"]
         self.dl.stream_to_file(c["url"], os.path.join(temp, c["name"]))
         print("") # Empty space to clear the download progress
         if not os.path.exists(os.path.join(temp, c["name"])):
@@ -422,73 +451,83 @@ class WinUSB:
             self.u.grab("Press [enter] to return...")
             return
         # Got a valid file in our temp dir
-        print("Extracting {}...".format(clover_lzma))
-        out = self.r.run({"args":[self.z_path, "e", os.path.join(temp,clover_lzma)]})
-        if out[2] != 0:
-            shutil.rmtree(temp,ignore_errors=True)
-            print(" - An error occurred extracting: {}".format(out[2]))
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
-        # Should result in a .tar file
-        clover_tar = next((x for x in os.listdir(temp) if x.lower().endswith(".tar")),None)
-        if not clover_tar:
-            shutil.rmtree(temp,ignore_errors=True)
-            print(" - No .tar archive found - aborting...")
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
-        # Got the .tar archive - get the .iso
-        print("Extracting {}...".format(clover_tar))
-        out = self.r.run({"args":[self.z_path, "e", os.path.join(temp,clover_tar)]})
-        if out[2] != 0:
-            shutil.rmtree(temp,ignore_errors=True)
-            print(" - An error occurred extracting: {}".format(out[2]))
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
-        # Should result in a .iso file
-        clover_iso = next((x for x in os.listdir(temp) if x.lower().endswith(".iso")),None)
-        if not clover_tar:
-            shutil.rmtree(temp,ignore_errors=True)
-            print(" - No .iso found - aborting...")
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
-        # Got the .iso - let's extract the needed parts
-        print("Extracting EFI from {}...".format(clover_iso))
-        out = self.r.run({"args":[self.z_path, "x", os.path.join(temp,clover_iso), "EFI*"]})
-        if out[2] != 0:
-            shutil.rmtree(temp,ignore_errors=True)
-            print(" - An error occurred extracting: {}".format(out[2]))
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
-        print("Extracting {} from {}...".format(self.boot0,clover_iso))
-        out = self.r.run({"args":[self.z_path, "e", os.path.join(temp,clover_iso), self.boot0, "-r"]})
-        if out[2] != 0:
-            shutil.rmtree(temp,ignore_errors=True)
-            print(" - An error occurred extracting: {}".format(out[2]))
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
-        print("Extracting {} from {}...".format(self.boot1,clover_iso))
-        out = self.r.run({"args":[self.z_path, "e", os.path.join(temp,clover_iso), self.boot1, "-r"]})
-        if out[2] != 0:
-            shutil.rmtree(temp,ignore_errors=True)
-            print(" - An error occurred extracting: {}".format(out[2]))
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
-        print("Extracting {} from {}...".format(self.boot,clover_iso))
-        out = self.r.run({"args":[self.z_path, "e", os.path.join(temp,clover_iso), self.boot, "-r"]})
-        if out[2] != 0:
-            shutil.rmtree(temp,ignore_errors=True)
-            print(" - An error occurred extracting: {}".format(out[2]))
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
-        # At this point, we should have a boot0xx file and an EFI folder in the temp dir
+        if self.bootloader == "Clover":
+            print("Extracting {}...".format(bootloader_zip))
+            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip)]})
+            if out[2] != 0:
+                shutil.rmtree(temp,ignore_errors=True)
+                print(" - An error occurred extracting: {}".format(out[2]))
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
+            # Should result in a .tar file
+            clover_tar = next((x for x in os.listdir(temp) if   x.lower().endswith(".tar")),None)
+            if not clover_tar:
+                shutil.rmtree(temp,ignore_errors=True)
+                print(" - No .tar archive found - aborting...")
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
+            # Got the .tar archive - get the .iso
+            print("Extracting {}...".format(clover_tar))
+            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,clover_tar)]})
+            if out[2] != 0:
+                shutil.rmtree(temp,ignore_errors=True)
+                print(" - An error occurred extracting: {}".format(out[2]))
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
+            # Should result in a .iso file
+            clover_iso = next((x for x in os.listdir(temp) if   x.lower().endswith(".iso")),None)
+            if not clover_tar:
+                shutil.rmtree(temp,ignore_errors=True)
+                print(" - No .iso found - aborting...")
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
+            # Got the .iso - let's extract the needed parts
+            print("Extracting EFI from {}...".format(clover_iso))
+            out = self.r.run({"args":[self.z_path, "x",     os.path.join(temp,clover_iso), "EFI*"]})
+            if out[2] != 0:
+                shutil.rmtree(temp,ignore_errors=True)
+                print(" - An error occurred extracting: {}".format(out[2]))
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
+            print("Extracting {} from {}...".format(self.boot0,clover_iso))
+            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,clover_iso), self.boot0, "-r"]})
+            if out[2] != 0:
+                shutil.rmtree(temp,ignore_errors=True)
+                print(" - An error occurred extracting: {}".format(out[2]))
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
+            print("Extracting {} from {}...".format(self.boot1,clover_iso))
+            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,clover_iso), self.boot1, "-r"]})
+            if out[2] != 0:
+                shutil.rmtree(temp,ignore_errors=True)
+                print(" - An error occurred extracting: {}".format(out[2]))
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
+            print("Extracting {} from {}...".format(self.boot,clover_iso))
+            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,clover_iso), self.boot, "-r"]})
+            if out[2] != 0:
+                shutil.rmtree(temp,ignore_errors=True)
+                print(" - An error occurred extracting: {}".format(out[2]))
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
+        elif self.bootloader == "OpenCore":
+            print("Extracting {}...".format(bootloader_zip))
+            out = self.r.run({"args":[self.z_path, "x",     os.path.join(temp,bootloader_zip), "EFI*"]})
+            if out[2] != 0:
+                shutil.rmtree(temp,ignore_errors=True)
+                print(" - An error occurred extracting: {}".format(out[2]))
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
+            # Should result in a EFI folder
         # We need to udpate the disk list though - to reflect the current file system on part 1
         # of our current disk
         self.d.update() # assumes our disk number stays the same
@@ -509,54 +548,55 @@ class WinUSB:
             print("")
             self.u.grab("Press [enter] to return...")
             return
-        # Here we have our disk and partitions and such - the CLOVER partition
+        # Here we have our disk and partitions and such - the EFI partition
         # will be the first partition
-        # Let's copy over the EFI folder and then dd the boot0xx file
+        # Let's copy over the EFI folder and then dd the boot0xx file (if we have)
         print("Copying EFI folder to {}/EFI...".format(part))
         if os.path.exists("{}/EFI".format(part)):
             print(" - EFI exists - removing...")
             shutil.rmtree("{}/EFI".format(part),ignore_errors=True)
             time.sleep(1) # Added because windows is dumb
         shutil.copytree(os.path.join(temp,"EFI"), "{}/EFI".format(part))
-        # Copy boot6 over to the root of the EFI volume - and rename it to boot
-        print("Copying {} to {}/boot...".format(self.boot,part))
-        shutil.copy(os.path.join(temp,self.boot),"{}/boot".format(part))
-        # Use bootice to update the MBR and PBR - always on the first
-        # partition (which is 0 in bootice)
-        print("Updating the MBR with {}...".format(self.boot0))
-        args = [
-            os.path.join(self.s_path,self.bi_name),
-            "/device={}".format(disk.get("index",-1)),
-            "/mbr",
-            "/restore",
-            "/file={}".format(os.path.join(temp,self.boot0)),
-            "/keep_dpt",
-            "/quiet"
-        ]
-        out = self.r.run({"args":args})
-        if out[2] != 0:
-            shutil.rmtree(temp,ignore_errors=True)
-            print(" - An error occurred updating the MBR: {}".format(out[2]))
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
-        print("Updating the PBR with {}...".format(self.boot1))
-        args = [
-            os.path.join(self.s_path,self.bi_name),
-            "/device={}:0".format(disk.get("index",-1)),
-            "/pbr",
-            "/restore",
-            "/file={}".format(os.path.join(temp,self.boot1)),
-            "/keep_bpb",
-            "/quiet"
-        ]
-        out = self.r.run({"args":args})
-        if out[2] != 0:
-            shutil.rmtree(temp,ignore_errors=True)
-            print(" - An error occurred updating the PBR: {}".format(out[2]))
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
+        if self.bootloader == "Clover":
+            # Copy boot6 over to the root of the EFI volume - and rename it to boot
+            print("Copying {} to {}/boot...".format(self.boot,part))
+            shutil.copy(os.path.join(temp,self.boot),"{}/boot".format(part))
+            # Use bootice to update the MBR and PBR - always on the first
+            # partition (which is 0 in bootice)
+            print("Updating the MBR with {}...".format(self.boot0))
+            args = [
+                os.path.join(self.s_path,self.bi_name),
+                "/device={}".format(disk.get("index",-1)),
+                "/mbr",
+                "/restore",
+                "/file={}".format(os.path.join(temp,self.boot0)),
+                "/keep_dpt",
+                "/quiet"
+            ]
+            out = self.r.run({"args":args})
+            if out[2] != 0:
+                shutil.rmtree(temp,ignore_errors=True)
+                print(" - An error occurred updating the MBR: {}".format(out[2]))
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
+            print("Updating the PBR with {}...".format(self.boot1))
+            args = [
+                os.path.join(self.s_path,self.bi_name),
+                "/device={}:0".format(disk.get("index",-1)),
+                "/pbr",
+                "/restore",
+                "/file={}".format(os.path.join(temp,self.boot1)),
+                "/keep_bpb",
+                "/quiet"
+            ]
+            out = self.r.run({"args":args})
+            if out[2] != 0:
+                shutil.rmtree(temp,ignore_errors=True)
+                print(" - An error occurred updating the PBR: {}".format(out[2]))
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
         print("Cleaning up...")
         shutil.rmtree(temp,ignore_errors=True)
         print("")
