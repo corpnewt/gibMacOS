@@ -150,13 +150,13 @@ class WinUSB:
         return os.path.exists(os.path.join(self.s_path,self.bi_name))
 
     def get_dl_info(self):
-        self.u.head("Choose the Bootloader")
+        self.u.head("Choose the Boot Loader")
         print("")
         print("O. OpenCore")
         print("C. Clover")
         print("Q. Quit")
         print("")
-        menu = self.u.grab("Please select a bootloader or press [enter] with no options to refresh:  ")
+        menu = self.u.grab("Please select a Boot Loader or press [enter] with no options to refresh:  ")
         if not len(menu):
             self.main()
             return
@@ -671,7 +671,7 @@ class WinUSB:
         print("")
         print("Usage: [drive number][option (only one allowed)] (eg. 1C)")
         print("  Options are as follows with precedence C > E > U > G:")
-        print("    C = Only install bootloader to the drive's first partition.")
+        print("    C = Only install Boot Loader to the drive's first partition.")
         print("    E = Sets the type of the drive's first partition to EFI.")
         print("    U = Similar to E, but sets the type to Basic Data (useful for editing).")
         print("    G = Format as GPT (default is MBR).")
