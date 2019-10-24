@@ -8,7 +8,7 @@ class WinUSB:
         self.min_plat = 9600
         # Make sure we're on windows
         self.verify_os()
-        # Setup initial vars3
+        # Setup initial vars
         self.d = diskwin.Disk()
         self.dl = downloader.Downloader()
         self.r = run.Run()
