@@ -38,7 +38,9 @@ class WinUSB:
         self.boot0 = "boot0af"
         self.clover_boot1 = "boot1f32alt"
         self.oc_boot1 = "boot1f32"
-        self.boot  = "boot6"
+        self.clover_boot = "boot6"
+        self.oc_boot_loc = "Utilities/BootInstall/boot"
+        self.oc_boot = "boot"
         self.efi_id = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b" # EFI
         self.bas_id = "ebd0a0a2-b9e5-4433-87c0-68b6b72699c7" # Microsoft Basic Data
         self.hfs_id = "48465300-0000-11AA-AA11-00306543ECAC" # HFS+
@@ -433,6 +435,7 @@ class WinUSB:
         print("Downloading...")
         temp = tempfile.mkdtemp()
         os.chdir(temp)
+        print(temp)
         bootloader_zip = c["name"]
         self.dl.stream_to_file(c["url"], os.path.join(temp, c["name"]))
         print("") # Empty space to clear the download progress
@@ -494,16 +497,16 @@ class WinUSB:
                 print("")
                 self.u.grab("Press [enter] to return...")
                 return
-            print("Extracting {} from {}...".format(self.boot1,clover_iso))
-            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,clover_iso), self.boot1, "-r"]})
+            print("Extracting {} from {}...".format(self.clover_boot1,clover_iso))
+            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,clover_iso), self.clover_boot1, "-r"]})
             if out[2] != 0:
                 shutil.rmtree(temp,ignore_errors=True)
                 print(" - An error occurred extracting: {}".format(out[2]))
                 print("")
                 self.u.grab("Press [enter] to return...")
                 return
-            print("Extracting {} from {}...".format(self.boot,clover_iso))
-            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,clover_iso), self.boot, "-r"]})
+            print("Extracting {} from {}...".format(self.clover_boot,clover_iso))
+            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,clover_iso), self.clover_boot, "-r"]})
             if out[2] != 0:
                 shutil.rmtree(temp,ignore_errors=True)
                 print(" - An error occurred extracting: {}".format(out[2]))
@@ -520,21 +523,24 @@ class WinUSB:
                 self.u.grab("Press [enter] to return...")
                 return
             # Should result in a EFI folder
-            out = self.r.run({"args":[self.z_path, "x",     os.path.join(temp,bootloader_zip), self.boot0, "-r"]})
+            print("Extracting {} from {}...".format(self.boot0,bootloader_zip))
+            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip), self.boot0, "-r"]})
             if out[2] != 0:
                 shutil.rmtree(temp,ignore_errors=True)
                 print(" - An error occurred extracting: {}".format(out[2]))
                 print("")
                 self.u.grab("Press [enter] to return...")
                 return
-            out = self.r.run({"args":[self.z_path, "x",     os.path.join(temp,bootloader_zip), self.oc_boot1, "-r"]})
+            print("Extracting {} from {}...".format(self.oc_boot1,bootloader_zip))
+            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip), self.oc_boot1, "-r"]})
             if out[2] != 0:
                 shutil.rmtree(temp,ignore_errors=True)
                 print(" - An error occurred extracting: {}".format(out[2]))
                 print("")
                 self.u.grab("Press [enter] to return...")
                 return
-            out = self.r.run({"args":[self.z_path, "x",     os.path.join(temp,bootloader_zip), self.boot, "-r"]})
+            print("Extracting {} from {}...".format(self.oc_boot,bootloader_zip))
+            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip), self.oc_boot_loc]})
             if out[2] != 0:
                 shutil.rmtree(temp,ignore_errors=True)
                 print(" - An error occurred extracting: {}".format(out[2]))
@@ -570,9 +576,13 @@ class WinUSB:
             shutil.rmtree("{}/EFI".format(part),ignore_errors=True)
             time.sleep(1) # Added because windows is dumb
         shutil.copytree(os.path.join(temp,"EFI"), "{}/EFI".format(part))
-        # Copy boot6 over to the root of the EFI volume - and rename it to boot
-        print("Copying {} to {}/boot...".format(self.boot,part))
-        shutil.copy(os.path.join(temp,self.boot),"{}/boot".format(part))
+        # Copy boot(6) over to the root of the EFI volume - and rename it to boot
+        if self.bootloader == "Clover":
+            print("Copying {} to {}/boot...".format(self.clover_boot,part))
+            shutil.copy(os.path.join(temp,self.clover_boot),"{}/boot".format(part))
+        else:
+            print("Copying {} to {}/boot...".format(self.oc_boot,part))
+            shutil.copy(os.path.join(temp,self.oc_boot),"{}/boot".format(part))
         # Use bootice to update the MBR and PBR - always on the first
         # partition (which is 0 in bootice)
         print("Updating the MBR with {}...".format(self.boot0))
@@ -592,27 +602,20 @@ class WinUSB:
             print("")
             self.u.grab("Press [enter] to return...")
             return
-        print("Updating the PBR with {}...".format(self.boot1))
         if self.bootloader == "Clover":
-            args = [
-                os.path.join(self.s_path,self.bi_name),
-                "/device={}:0".format(disk.get("index",-1)),
-                "/pbr",
-                "/restore",
-                "/file={}".format(os.path.join(temp,self.clover_boot1)),
-                "/keep_bpb",
-                "/quiet"
-            ]
-        elif self.bootloader == "OpenCore":
-            args = [
-                os.path.join(self.s_path,self.bi_name),
-                "/device={}:0".format(disk.get("index",-1)),
-                "/pbr",
-                "/restore",
-                "/file={}".format(os.path.join(temp,self.oc_boot1)),
-                "/keep_bpb",
-                "/quiet"
-            ]
+            self.boot1 = self.clover_boot1
+        else:
+            self.boot1 = self.oc_boot1
+        print("Updating the PBR with {}...".format(self.boot1))
+        args = [
+            os.path.join(self.s_path,self.bi_name),
+            "/device={}:0".format(disk.get("index",-1)),
+            "/pbr",
+            "/restore",
+            "/file={}".format(os.path.join(temp,self.boot1)),
+            "/keep_bpb",
+            "/quiet"
+        ]
         out = self.r.run({"args":args})
         if out[2] != 0:
             shutil.rmtree(temp,ignore_errors=True)
