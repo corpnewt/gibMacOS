@@ -8,7 +8,7 @@ class WinUSB:
         self.min_plat = 9600
         # Make sure we're on windows
         self.verify_os()
-        # Setup initial vars
+        # Setup initial vars3
         self.d = diskwin.Disk()
         self.dl = downloader.Downloader()
         self.r = run.Run()
@@ -435,7 +435,6 @@ class WinUSB:
         print("Downloading...")
         temp = tempfile.mkdtemp()
         os.chdir(temp)
-        print(temp)
         bootloader_zip = c["name"]
         self.dl.stream_to_file(c["url"], os.path.join(temp, c["name"]))
         print("") # Empty space to clear the download progress
