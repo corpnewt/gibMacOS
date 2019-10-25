@@ -480,72 +480,44 @@ class WinUSB:
                 self.u.grab("Press [enter] to return...")
                 return
             # Got the .iso - let's extract the needed parts
-            print("Extracting EFI from {}...".format(clover_iso))
-            out = self.r.run({"args":[self.z_path, "x",     os.path.join(temp,clover_iso), "EFI*"]})
-            if out[2] != 0:
-                shutil.rmtree(temp,ignore_errors=True)
-                print(" - An error occurred extracting: {}".format(out[2]))
-                print("")
-                self.u.grab("Press [enter] to return...")
-                return
-            print("Extracting {} from {}...".format(self.boot0,clover_iso))
-            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,clover_iso), self.boot0, "-r"]})
-            if out[2] != 0:
-                shutil.rmtree(temp,ignore_errors=True)
-                print(" - An error occurred extracting: {}".format(out[2]))
-                print("")
-                self.u.grab("Press [enter] to return...")
-                return
-            print("Extracting {} from {}...".format(self.clover_boot1,clover_iso))
-            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,clover_iso), self.clover_boot1, "-r"]})
-            if out[2] != 0:
-                shutil.rmtree(temp,ignore_errors=True)
-                print(" - An error occurred extracting: {}".format(out[2]))
-                print("")
-                self.u.grab("Press [enter] to return...")
-                return
-            print("Extracting {} from {}...".format(self.clover_boot,clover_iso))
-            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,clover_iso), self.clover_boot, "-r"]})
-            if out[2] != 0:
-                shutil.rmtree(temp,ignore_errors=True)
-                print(" - An error occurred extracting: {}".format(out[2]))
-                print("")
-                self.u.grab("Press [enter] to return...")
-                return
+            bootloader_zip = clover_iso
+            boot1 = self.clover_boot1
+            boot = self.clover_boot
         elif self.bootloader == "OpenCore":
-            print("Extracting {}...".format(bootloader_zip))
-            out = self.r.run({"args":[self.z_path, "x",     os.path.join(temp,bootloader_zip), "EFI*"]})
-            if out[2] != 0:
-                shutil.rmtree(temp,ignore_errors=True)
-                print(" - An error occurred extracting: {}".format(out[2]))
-                print("")
-                self.u.grab("Press [enter] to return...")
-                return
-            # Should result in a EFI folder
-            print("Extracting {} from {}...".format(self.boot0,bootloader_zip))
-            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip), self.boot0, "-r"]})
-            if out[2] != 0:
-                shutil.rmtree(temp,ignore_errors=True)
-                print(" - An error occurred extracting: {}".format(out[2]))
-                print("")
-                self.u.grab("Press [enter] to return...")
-                return
-            print("Extracting {} from {}...".format(self.oc_boot1,bootloader_zip))
-            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip), self.oc_boot1, "-r"]})
-            if out[2] != 0:
-                shutil.rmtree(temp,ignore_errors=True)
-                print(" - An error occurred extracting: {}".format(out[2]))
-                print("")
-                self.u.grab("Press [enter] to return...")
-                return
-            print("Extracting {} from {}...".format(self.oc_boot,bootloader_zip))
-            out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip), self.oc_boot_loc]})
-            if out[2] != 0:
-                shutil.rmtree(temp,ignore_errors=True)
-                print(" - An error occurred extracting: {}".format(out[2]))
-                print("")
-                self.u.grab("Press [enter] to return...")
-                return
+            boot1 = self.oc_boot1
+            boot = self.oc_boot_loc
+        print("Extracting EFI from {}...".format(bootloader_zip))
+        out = self.r.run({"args":[self.z_path, "x",     os.path.join(temp,bootloader_zip), "EFI*"]})
+        if out[2] != 0:
+            shutil.rmtree(temp,ignore_errors=True)
+            print(" - An error occurred extracting: {}".format(out[2]))
+            print("")
+            self.u.grab("Press [enter] to return...")
+            return
+        print("Extracting {} from {}...".format(self.boot0,bootloader_zip))
+        out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip), self.boot0, "-r"]})
+        if out[2] != 0:
+            shutil.rmtree(temp,ignore_errors=True)
+            print(" - An error occurred extracting: {}".format(out[2]))
+            print("")
+            self.u.grab("Press [enter] to return...")
+            return
+        print("Extracting {} from {}...".format(self.clover_boot1,bootloader_zip))
+        out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip), boot1, "-r"]})
+        if out[2] != 0:
+            shutil.rmtree(temp,ignore_errors=True)
+            print(" - An error occurred extracting: {}".format(out[2]))
+            print("")
+            self.u.grab("Press [enter] to return...")
+            return
+        print("Extracting {} from {}...".format(self.clover_boot,bootloader_zip))
+        out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip), boot, "-r"]})
+        if out[2] != 0:
+            shutil.rmtree(temp,ignore_errors=True)
+            print(" - An error occurred extracting: {}".format(out[2]))
+            print("")
+            self.u.grab("Press [enter] to return...")
+            return
         # We need to udpate the disk list though - to reflect the current file system on part 1
         # of our current disk
         self.d.update() # assumes our disk number stays the same
