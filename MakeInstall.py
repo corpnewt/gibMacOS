@@ -484,7 +484,7 @@ class WinUSB:
         else:
             self.boot = self.oc_boot_loc
         print("Extracting EFI from {}...".format(bootloader_zip))
-        out = self.r.run({"args":[self.z_path, "x",     os.path.join(temp,bootloader_zip), "EFI*"]})
+        out = self.r.run({"args":[self.z_path, "x", os.path.join(temp,bootloader_zip), "EFI*"]})
         if out[2] != 0:
             shutil.rmtree(temp,ignore_errors=True)
             print(" - An error occurred extracting: {}".format(out[2]))
@@ -492,23 +492,23 @@ class WinUSB:
             self.u.grab("Press [enter] to return...")
             return
         print("Extracting {} from {}...".format(self.boot0,bootloader_zip))
-        out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip), self.boot0, "-r"]})
+        out = self.r.run({"args":[self.z_path, "e", os.path.join(temp,bootloader_zip), self.boot0, "-r"]})
         if out[2] != 0:
             shutil.rmtree(temp,ignore_errors=True)
             print(" - An error occurred extracting: {}".format(out[2]))
             print("")
             self.u.grab("Press [enter] to return...")
             return
-        print("Extracting {} from {}...".format(self.clover_boot1,bootloader_zip))
-        out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip), self.boot1, "-r"]})
+        print("Extracting {} from {}...".format(self.boot1,bootloader_zip))
+        out = self.r.run({"args":[self.z_path, "e", os.path.join(temp,bootloader_zip), self.boot1, "-r"]})
         if out[2] != 0:
             shutil.rmtree(temp,ignore_errors=True)
             print(" - An error occurred extracting: {}".format(out[2]))
             print("")
             self.u.grab("Press [enter] to return...")
             return
-        print("Extracting {} from {}...".format(self.clover_boot,bootloader_zip))
-        out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip), self.boot, "-r"]})
+        print("Extracting {} from {}...".format(self.boot,bootloader_zip))
+        out = self.r.run({"args":[self.z_path, "e", os.path.join(temp,bootloader_zip), self.boot, "-r"]})
         if out[2] != 0:
             shutil.rmtree(temp,ignore_errors=True)
             print(" - An error occurred extracting: {}".format(out[2]))
