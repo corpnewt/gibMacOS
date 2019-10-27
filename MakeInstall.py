@@ -36,11 +36,9 @@ class WinUSB:
         )
         self.dd_bootsector = True
         self.boot0 = "boot0af"
-        self.clover_boot1 = "boot1f32alt"
-        self.oc_boot1 = "boot1f32"
-        self.clover_boot = "boot6"
+        self.boot1 = "boot1f32"
+        self.boot = "boot"
         self.oc_boot_loc = "Utilities/BootInstall/boot"
-        self.oc_boot = "boot"
         self.efi_id = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b" # EFI
         self.bas_id = "ebd0a0a2-b9e5-4433-87c0-68b6b72699c7" # Microsoft Basic Data
         self.hfs_id = "48465300-0000-11AA-AA11-00306543ECAC" # HFS+
@@ -421,7 +419,7 @@ class WinUSB:
         # Install Clover to the target drive
         self.install_clover(disk)
 
-    def install_clover(self, disk):
+    def install_bootloader(self, disk):
         self.u.head("Installing {}".format(self.bootloader))
         print("")
         print("Gathering info...")
@@ -481,11 +479,10 @@ class WinUSB:
                 return
             # Got the .iso - let's extract the needed parts
             bootloader_zip = clover_iso
-            boot1 = self.clover_boot1
-            boot = self.clover_boot
-        elif self.bootloader == "OpenCore":
-            boot1 = self.oc_boot1
-            boot = self.oc_boot_loc
+            self.boot1 = "boot1f32alt"
+            self.boot = "boot6"
+        else:
+            self.boot = self.oc_boot_loc
         print("Extracting EFI from {}...".format(bootloader_zip))
         out = self.r.run({"args":[self.z_path, "x",     os.path.join(temp,bootloader_zip), "EFI*"]})
         if out[2] != 0:
@@ -503,7 +500,7 @@ class WinUSB:
             self.u.grab("Press [enter] to return...")
             return
         print("Extracting {} from {}...".format(self.clover_boot1,bootloader_zip))
-        out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip), boot1, "-r"]})
+        out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip), self.boot1, "-r"]})
         if out[2] != 0:
             shutil.rmtree(temp,ignore_errors=True)
             print(" - An error occurred extracting: {}".format(out[2]))
@@ -511,7 +508,7 @@ class WinUSB:
             self.u.grab("Press [enter] to return...")
             return
         print("Extracting {} from {}...".format(self.clover_boot,bootloader_zip))
-        out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip), boot, "-r"]})
+        out = self.r.run({"args":[self.z_path, "e",     os.path.join(temp,bootloader_zip), self.boot, "-r"]})
         if out[2] != 0:
             shutil.rmtree(temp,ignore_errors=True)
             print(" - An error occurred extracting: {}".format(out[2]))
@@ -540,7 +537,7 @@ class WinUSB:
             return
         # Here we have our disk and partitions and such - the EFI partition
         # will be the first partition
-        # Let's copy over the EFI folder and then dd the boot0xx file (if we have)
+        # Let's copy over the EFI folder and then dd the boot files
         print("Copying EFI folder to {}/EFI...".format(part))
         if os.path.exists("{}/EFI".format(part)):
             print(" - EFI exists - removing...")
@@ -548,12 +545,10 @@ class WinUSB:
             time.sleep(1) # Added because windows is dumb
         shutil.copytree(os.path.join(temp,"EFI"), "{}/EFI".format(part))
         # Copy boot(6) over to the root of the EFI volume - and rename it to boot
-        if self.bootloader == "Clover":
-            print("Copying {} to {}/boot...".format(self.clover_boot,part))
-            shutil.copy(os.path.join(temp,self.clover_boot),"{}/boot".format(part))
-        else:
-            print("Copying {} to {}/boot...".format(self.oc_boot,part))
-            shutil.copy(os.path.join(temp,self.oc_boot),"{}/boot".format(part))
+        if self.bootloader = "OpenCore":
+            self.boot = "boot"
+        print("Copying {} to {}/boot...".format(self.boot,part))
+        shutil.copy(os.path.join(temp,self.boot),"{}/boot".format(part))
         # Use bootice to update the MBR and PBR - always on the first
         # partition (which is 0 in bootice)
         print("Updating the MBR with {}...".format(self.boot0))
@@ -573,10 +568,6 @@ class WinUSB:
             print("")
             self.u.grab("Press [enter] to return...")
             return
-        if self.bootloader == "Clover":
-            self.boot1 = self.clover_boot1
-        else:
-            self.boot1 = self.oc_boot1
         print("Updating the PBR with {}...".format(self.boot1))
         args = [
             os.path.join(self.s_path,self.bi_name),
