@@ -417,7 +417,7 @@ class WinUSB:
             self.u.grab("Press [enter] to return to the main menu...")
             return
         # Install Clover to the target drive
-        self.install_clover(disk)
+        self.install_bootloader(disk)
 
     def install_bootloader(self, disk):
         self.u.head("Installing {}".format(self.bootloader))
@@ -545,7 +545,7 @@ class WinUSB:
             time.sleep(1) # Added because windows is dumb
         shutil.copytree(os.path.join(temp,"EFI"), "{}/EFI".format(part))
         # Copy boot(6) over to the root of the EFI volume - and rename it to boot
-        if self.bootloader = "OpenCore":
+        if self.bootloader == "OpenCore":
             self.boot = "boot"
         print("Copying {} to {}/boot...".format(self.boot,part))
         shutil.copy(os.path.join(temp,self.boot),"{}/boot".format(part))
@@ -698,7 +698,7 @@ class WinUSB:
             return
         # Got a disk!
         if only_clover:
-            self.install_clover(selected_disk)
+            self.install_bootloader(selected_disk)
         elif set_efi:
             self.diskpart_flag(selected_disk, True)
         elif unset_efi:
