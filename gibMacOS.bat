@@ -52,7 +52,9 @@ goto :EOF
 
 :checkpy
 call :updatepath
-for /f "tokens=*" %%x in ('where python') do ( call :checkpyversion "%%x" "py2v" "py2path" "py3v" "py3path" )
+REM Get the system32 (or equivalent) path
+set syspath=%ComSpec:cmd.exe=%
+for /f "tokens=*" %%x in ('!syspath!where python') do ( call :checkpyversion "%%x" "py2v" "py2path" "py3v" "py3path" )
 set "targetpy=3"
 if /i "!use_py3!" == "FALSE" (
     set "targetpy=2"
