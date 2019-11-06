@@ -1,12 +1,11 @@
 #!/bin/python2
-
+# NOTE: PkgCopy and CloverExtract will be pushed to the Linux/ folder soon
 import os
 import sys
 import tempfile
 import shutil
 import zipfile
 import platform
-import json
 import time
 import subprocess
 import ctypes
@@ -137,7 +136,7 @@ call(["rm", "-rf", clover_url, "*.iso"])
 call(["wget", clover_url])
 print "Clover extraction might crash. If so, don't panic. Just install it manually."
 sleep(3)
-call(["tar", "-xvf", "*.tar.lzma"]) # A new base script for this will be made soon, just temporary
+call(["bash", "CloverExtract.command"])
 call(["mkdir", "srcdir"])
 call(["mount", "*.iso", "srcdir"])
 call(["mkdir", "bootdir"])
