@@ -23,30 +23,32 @@ def check_admin():
 	return is_admin
 is_admin = check_admin()
 if(is_admin == False):
-	print("You must be running as root in order to use this tool!\nAttempting to elevate you via sudo")
+	print "You must be running as root in order to use this tool!. Tap Ctrl-C to stop auto elavation. "
+	sleep(3)
+	print "Attempting to elevate you via sudo"
 	try:
 		# From utils.py elevate()
 		p = subprocess.Popen(["which", "sudo"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		c = p.communicate()[0].decode("utf-8", "ignore").replace("\n", "")
 		os.execv(c, [ sys.executable, 'python2'] + sys.argv)
 	except:
-		print("Elevation error occured")
+		print("Elevation error occured. Please share support code BUMBLEBEE")
 		sys.exit(-1)
 	is_admin = check_admin()
 	if(is_admin == False):
-		print("Elevation error occured")
+		print("Elevation error occured. Please share support code ROOTPAW")
 		sys.exit(-1)
 # Hacky solution, but it works
 try:
 	call(["python2","gibMacOS.command"])
 except:
-	print("gibMacOS failed to execute")
+	print("gibMacOS failed to execute. Please share support code FIRESTAR")
 	sys.exit(-1)
 folder_name = "'macOS Downloads'/*/*/*"
 try:
 	call(['bash','PkgCopy.command'])
 except:
-	print("Failed to copy pkg file")
+	print("Failed to copy pkg file. Please share support code DARKSTALKER")
 	sys.exit(-1)
 # Now get clover from download_url.list
 try:
@@ -65,7 +67,7 @@ try:
 		clover_url = clover_url.rstrip("\n")
 	print "URL: ", clover_url
 except:
-	print("An unexpected error has occurred")
+	print("An unexpected error has occurred. Please share support code RAVENPAW")
 	sys.exit(-1)
 print("Waiting for 3 seconds")
 sleep(3)
@@ -99,6 +101,8 @@ call([
 call([
     'partprobe'])
 # Extract images
+print "Tap Yes when not sure"
+sleep(3)
 call([
     '7z',
     'e',
@@ -128,11 +132,14 @@ outstr = disk + '1'
 call([
     'mkfs.vfat',
     outstr])
-#call(["rm", "-rf", clover_url, "*.iso"])
-#call(["wget", clover_url])
-#call(["tar", "-xvf", "*.lzma"])
-#call(["mkdir", "srcdir"])
-#call(["mount", "*.iso", "srcdir"])
-#call(["mkdir", "bootdir"])
-#call(["mount", outstr, "bootdir"])
-#call(["cp", "-rf", "srcdir/*", "bootdir"])
+# Uncomment if you want the experimental clover install. most people just want the download
+call(["rm", "-rf", clover_url, "*.iso"])
+call(["wget", clover_url])
+print "Clover extraction might crash. If so, don't panic. Just install it manually."
+sleep(3)
+call(["tar", "-xvf", "*.tar.lzma"]) # A new base script for this will be made soon, just temporary
+call(["mkdir", "srcdir"])
+call(["mount", "*.iso", "srcdir"])
+call(["mkdir", "bootdir"])
+call(["mount", outstr, "bootdir"])
+call(["cp", "-rf", "srcdir/*", "bootdir"])
