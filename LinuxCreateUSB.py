@@ -75,7 +75,7 @@ call([
     'lsblk',
     '-o',
     'NAME'])
-disk = str(raw_input('Please type in name of disk: (ex: sda, sdX etc.)'))
+disk = str(raw_input('Please type in name of disk (ex: sda, sdX etc.): '))
 disk = '/dev/' + disk
 confirm_str = 'WARNING: This will delete all data on ' + disk + '.\nIf you want to continue, wait for 3 seconds. Otherwise hit Ctrl-C\n'
 print confirm_str
