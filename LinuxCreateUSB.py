@@ -28,7 +28,7 @@ if(is_admin == False):
 		# From utils.py elevate()
 		p = subprocess.Popen(["which", "sudo"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		c = p.communicate()[0].decode("utf-8", "ignore").replace("\n", "")
-		os.execv(c, [ sys.executable, 'python'] + sys.argv)
+		os.execv(c, [ sys.executable, 'python2'] + sys.argv)
 	except:
 		print("Elevation error occured")
 		sys.exit(-1)
@@ -128,11 +128,11 @@ outstr = disk + '1'
 call([
     'mkfs.vfat',
     outstr])
-call(["rm", "-rf", clover_url, "*.iso"])
-call(["wget", clover_url])
-call(["tar", "-xvf", "*.lzma"])
-call(["mkdir", "srcdir"])
-call(["mount", "*.iso", "srcdir"])
-call(["mkdir", "bootdir"])
-call(["mount", outstr, "bootdir"])
-call(["cp", "-rf", "srcdir/*", "bootdir"])
+#call(["rm", "-rf", clover_url, "*.iso"])
+#call(["wget", clover_url])
+#call(["tar", "-xvf", "*.lzma"])
+#call(["mkdir", "srcdir"])
+#call(["mount", "*.iso", "srcdir"])
+#call(["mkdir", "bootdir"])
+#call(["mount", outstr, "bootdir"])
+#call(["cp", "-rf", "srcdir/*", "bootdir"])
