@@ -22,9 +22,8 @@ class WinUSB:
         self.z_name = "7z.exe"
         self.bi_url = "https://raw.githubusercontent.com/corpnewt/gibMacOS/master/Scripts/BOOTICEx64.exe"
         self.bi_name = "BOOTICEx64.exe"
-        # self.clover_url = "https://api.github.com/repos/dids/clover-builder/releases/latest"
-        # self.clover_url = "https://api.github.com/repos/CloverHackyColor/CloverBootloader/releases/latest"
         self.clover_url = "https://api.github.com/repos/CloverHackyColor/CloverBootloader/releases"
+        self.dids_url = "https://api.github.com/repos/dids/clover-builder/releases"
         # From Tim Sutton's brigadier:  https://github.com/timsutton/brigadier/blob/master/brigadier
         self.z_path = None
         self.z_path64 = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Program Files", "7-Zip", "7z.exe")
@@ -147,22 +146,29 @@ class WinUSB:
         print("")
         return os.path.exists(os.path.join(self.s_path,self.bi_name))
 
-    def get_dl_info(self):
-        # Returns the latest download package and info in a
-        # dictionary:  { "url" : dl_url, "name" : name, "info" : update_info }
-        json_data = self.dl.get_string(self.clover_url, False)
-        if not json_data or not len(json_data):
-            return None
-        try:
-            j_list = json.loads(json_data)
-        except:
-            return None
+    def get_dl_url_from_json(self,json_data):
+        try: j_list = json.loads(json_data)
+        except: return None
+        j_list = j_list if isinstance(j_list,list) else [j_list]
         for j in j_list:
             dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").lower().endswith(".lzma")), None)
             if dl_link: break
         if not dl_link:
             return None
         return { "url" : dl_link, "name" : os.path.basename(dl_link), "info" : j.get("body", None) }
+
+    def get_dl_info(self,clover_version=None):
+        # Returns the latest download package and info in a
+        # dictionary:  { "url" : dl_url, "name" : name, "info" : update_info }
+        # Attempt Clover's official repo first - falling back on Dids' repo as needed
+        for url in (self.clover_url,self.dids_url):
+            # Tag is 5098 on Slice's repo, and v2.5k_r5098 on Dids' - accommodate as needed
+            search_url = url if clover_version == None else "{}/tags/{}".format(url,clover_version if url == self.clover_url else "v2.{}k_r{}".format(clover_version[0],clover_version))
+            print(" - Checking {}".format(search_url))
+            json_data = self.dl.get_string(search_url, False)
+            if not json_data: print(" --> Not found!")
+            else: return self.get_dl_url_from_json(json_data)
+        return None
 
     def diskpart_flag(self, disk, as_efi=False):
         # Sets and unsets the GUID needed for a GPT EFI partition ID
@@ -202,7 +208,7 @@ class WinUSB:
         print("")
         self.u.grab("Press [enter] to return...")
 
-    def diskpart_erase(self, disk, gpt=False):
+    def diskpart_erase(self, disk, gpt=False, clover_version = None):
         # Generate a script that we can pipe to diskpart to erase our disk
         self.u.head("Erasing With DiskPart")
         print("")
@@ -262,9 +268,9 @@ class WinUSB:
         self.d.update()
         print("Relocating disk {}".format(disk["index"]))
         disk = self.d.disks[str(disk["index"])]
-        self.select_package(disk)
+        self.select_package(disk, clover_version)
 
-    def select_package(self, disk):
+    def select_package(self, disk, clover_version = None):
         self.u.head("Select Recovery Package")
         print("")
         print("{}. {} - {} ({})".format(
@@ -358,10 +364,10 @@ class WinUSB:
             print("")
             self.u.grab("Press [enter] to return...")
         else:
-            self.dd_image(disk, os.path.join(temp, hfs))
+            self.dd_image(disk, os.path.join(temp, hfs), clover_version)
         shutil.rmtree(temp,ignore_errors=True)
 
-    def dd_image(self, disk, image):
+    def dd_image(self, disk, image, clover_version = None):
         # Let's dd the shit out of our disk
         self.u.head("Copying Image To Drive")
         print("")
@@ -396,15 +402,16 @@ class WinUSB:
             self.u.grab("Press [enter] to return to the main menu...")
             return
         # Install Clover to the target drive
-        self.install_clover(disk)
+        self.install_clover(disk, clover_version)
 
-    def install_clover(self, disk):
-        self.u.head("Installing Clover")
+    def install_clover(self, disk, clover_version = None):
+        self.u.head("Installing Clover - {}".format("Latest" if not clover_version else "r"+clover_version))
         print("")
         print("Gathering info...")
-        c = self.get_dl_info()
+        c = self.get_dl_info(clover_version)
         if c == None:
-            print(" - Error communicating with github!")
+            if clover_version == None: print(" - Error communicating with github!")
+            else: print(" - Error gathering info for Clover r{}".format(clover_version))
             print("")
             self.u.grab("Press [enter] to return...")
             return
@@ -627,7 +634,7 @@ class WinUSB:
         print("")
         print("Q. Quit")
         print("")
-        print("Usage: [drive number][option (only one allowed)] (eg. 1C)")
+        print("Usage: [drive number][option (only one allowed)] r[Clover revision (optional)]\n  (eg. 1C r5092)")
         print("  Options are as follows with precedence C > E > U > G:")
         print("    C = Only install Clover to the drive's first partition.")
         print("    E = Sets the type of the drive's first partition to EFI.")
@@ -659,7 +666,12 @@ class WinUSB:
             use_gpt = True
             menu = menu.lower().replace("g","")
 
-        selected_disk = rem_disks.get(menu,None)
+        # Extract Clover version from args if found
+        clover_list = [x for x in menu.split() if x.lower().startswith("r") and all(y in "0123456789" for y in x[1:])]
+        menu = " ".join([x for x in menu.split() if not x in clover_list])
+        clover_version = None if not len(clover_list) else clover_list[0][1:] # Skip the "r" prefix
+
+        selected_disk = rem_disks.get(menu.strip(),None)
         if not selected_disk:
             self.u.head("Invalid Choice")
             print("")
@@ -670,7 +682,7 @@ class WinUSB:
             return
         # Got a disk!
         if only_clover:
-            self.install_clover(selected_disk)
+            self.install_clover(selected_disk, clover_version)
         elif set_efi:
             self.diskpart_flag(selected_disk, True)
         elif unset_efi:
@@ -698,7 +710,7 @@ class WinUSB:
                 if yn.lower() == "y":
                     break
             # Got the OK to erase!  Let's format a diskpart script!
-            self.diskpart_erase(selected_disk, use_gpt)
+            self.diskpart_erase(selected_disk, use_gpt, clover_version)
         self.main()
 
 if __name__ == '__main__':
