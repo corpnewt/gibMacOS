@@ -1,3 +1,7 @@
+# API: 2
+
+printf 'NOTE: On FreeBSD and macOS, this step has a 50% chance of failing\n'
+
 # For some reason, python has tarfile issues, to fix this, we extract clover by outselves
 tar -xvf *.tar.lzma
 printf "Clover successfully extracted\n"
