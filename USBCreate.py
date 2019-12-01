@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-# API: 2
+# API: 2.1 (Incompatible with 2)
 # Older USBCreator scripts (in USBCreate) and patches will not work until it is updated and/or ported to the above new API
 
 # CUSTOM MODULE SPECIFICATIONS AND INFO FOR API 2:
@@ -14,10 +14,11 @@
 #
 # * mod_out item structure
 # * 0: p_id (use '-3' for no change) - Integer: PlatformID
-# * 1: exp (use '-3' for no change) - Integer: ExperimentalPlatformVar
-# * 2: dd (use '-3' for no change) - Integer: DD_Command
-# * 3: pprobe (use '-3' for no change) - Integer: Partprobe_Command
-# * 4: misc_data - Nested List (this list goes in the mod_out list): MiscData
+# * 1: exp (use '-3' for no change) - String: ExperimentalPlatformVar
+# * 2: dd (use '-3' for no change) - String: DD_Command
+# * 3: pprobe (use '-3' for no change) - String: Partprobe_Command
+# * 4: dosfs (use -3 for no change) - String: DosFsTools_Command
+# * 5: misc_data - Nested List (this list goes in the mod_out list): MiscData
 # 
 # * A note on misc_data: only use this when needed and not used by any other module, as data entries by custom modules cannot and should not conflict (Think Flowol))
 #
@@ -45,15 +46,15 @@ api = -1
 import USBCreateClearScreen
 
 # Get needed properties
-api = USBCreateClearScreen.api
+api = USBCreateClearScreen.api # Do this for each module
 # APITest
-if api != 2:
+if api != 2.1:
     print 'Unsupported custom imports or basic import not found\n'
     sys.exit(-1)
 # task_id is where USBCreate is in execution. You can add code before it runs via this argument, modifying or patching code is coming in API 3 
 
 global mod_out # It has to be global throughout all code
-mod_out = ['-3', '-3', '-3', '-3', []] # Mod_out's structure
+mod_out = ['-3', '-3', '-3', '-3', '-3', []] # Mod_out's structure
 global t_mod_out # Same thing here
 t_mod_out = mod_out # Initially they are the same
 def modpost(task_id):
@@ -74,7 +75,9 @@ def modpost(task_id):
             mod_out[2] = t_mod_out[2]
         if t_mod_out[3] != '-3':
             mod_out[3] = t_mod_out[3]
-        mod_out[4] = t_mod_out[4] # No matter what, set misc_data in mod_out[4]
+        if t_mod_out[4] != '-3':
+            mod_out[4] = t_mod_out[4]
+        mod_out[5] = t_mod_out[5] # No matter what, set misc_data in mod_out[5]
     except:
         print 'Failed to load custom modules. Please remove bad or old custom modules. The support code for this error is CLEAR_SKY'
         sys.exit(-1) 
@@ -85,23 +88,26 @@ modpost(0)
 print '############################### USBCreate ################################'
 os_name = platform.system()
 if os_name == 'Darwin':
-    print 'Found OS: macOS\nThis is EXPERIMENTAL and partprobe will not work so you need to make sure said disk is unmounted and not in use. You also will need curl, dosfstools, gptfdisk, coreutils and jq installed from brew, MacPorts or from source code\nPlease install all dependencies or you will encounter issues!'
+    print 'Found OS: macOS\nThis is EXPERIMENTAL and partprobe will not work so you need to make sure said disk is unmounted and not in use. You also will need wget, curl, dosfstools, gptfdisk, coreutils and jq installed from brew, MacPorts or from source code\nPlease install all dependencies or you will encounter issues!'
     p_id = 1
     exp = 1
     dd = 'gdd' # Needed for status=progress
     pprobe = 'echo'
+    dosfs = 'mkfs.vfat'
 elif os_name == 'FreeBSD':
-    print 'Found OS: FreeBSD\nThis is EXPERIMENTAL and you will need to give device name without the script giving you lsblk/diskutit output, some functionality may be buggy and/or missing and partitioning may not work properly or at all'
+    print 'Found OS: FreeBSD\nThis is EXPERIMENTAL and you will need to have lsblk, curl, jq, coreutils, gdisk and p7zip installed from pkg. Some or all functionality may be buggy and/or missing and partitioning may not work properly or at all'
     p_id = 2
     exp = 1
     dd = 'dd'
     pprobe = 'echo'
+    dosfs = 'newfs_msdos'
 elif os_name == 'Linux':
     print 'Found OS: Linux\nThis should work correctly but may still have bugs. Not considered fully experimental however as I have tested it and it works.\nYou need jq, gptfdisk, dosfstools, curl, parted and coreutils installed for this to work correctly or at all' 
     p_id = 3
     exp = 0
     dd = 'dd'
     pprobe = 'partprobe'
+    dosfs = 'mkfs.vfat'
 else:
     print 'Unsupported OS: ', os_name, '\nPlease ask for support on https://github.com/corpnewt/gibmacOS on the PR for this file'
     p_id = -1
@@ -241,14 +247,13 @@ if(p_id == 3):
         'lsblk',
         '-o',
         'NAME'])
-if(p_id == 2):
-    call([
-        'echo',
-        'FreeBSD partition table reading is not yet supported'])
 if(p_id == 1):
     call([
         'diskutil',
         'list'])
+if(p_id == 2):
+    call([
+        'lsblk'])
 disk = str(raw_input('Please type in name of disk (ex: sdX, diskX, rdiskX etc.): '))
 disk = '/dev/' + disk
 modpost(7)
@@ -264,7 +269,7 @@ if clover == 0:
         pprobe])
     call([
         'sgdisk',
-        '-n1:1M:+512M',
+        '-n1:1M:+1G', # Large size of greater than 1G is needed for FreeBSD's stupid newfs_msdos unless we use FAT16. Otherwise we reach an error over clusters
         '-t1:0700',
         disk])
     call([
@@ -294,20 +299,34 @@ if clover == 0:
         '-tdmg',
         'Base*.dmg',
         '*.hfs'])
-    outstr = 'of=' + disk + '2'
+    if(p_id == 2):
+        magic_num = 'p'
+    if(p_id == 1):
+        magic_num = 's'
+    if(p_id == 3):
+        magic_num = ''
     modpost(9)
+    outstr = 'of=' + disk + magic_num + '2'
     print 'Image will now be written to device.\nPlease be patient!'
+    sleep(5)
     call([
         dd,
         'if=4.hfs',
-        outstr,
-        'status=progress'])
-outstr = disk + '1'
+        'bs=1M', # Needed for FreeBSD and MacOS for good write speeds 
+        'status=progress',
+        outstr])
+if(p_id == 2):
+    magic_num = 'p'
+if(p_id == 1):
+    magic_num = 's'
+if(p_id == 3):
+    magic_num = ''
+outstr = disk + magic_num + '1'
 modpost(10)
 print 'Installing CLOVER on ', outstr, '\nPlease wait...'
 sleep(3)
 call([
-    'mkfs.vfat',
+    dosfs,
     outstr])
 call([
     'rm',
@@ -317,7 +336,7 @@ call([
 call([
     'wget',
     clover_url])
-print "Clover extraction might error out. If so, don't panic. Just install it manually by extracting and mounting iso and copying all files to your USB."
+print "Clover extraction might error out. If so, don't panic. Just install it manually by extracting and mounting iso and copying all files to your USB.\nAlso on FreeBSD mount may appear to fail, just ignore this."
 sleep(3)
 call([
     'mkdir',
@@ -326,7 +345,14 @@ call([
     'mount',
     outstr,
     'bootdir'])
+# FreeBSD
+if(p_id == 2):
+    call([
+       'mount_msdosfs',
+       outstr,
+       'bootdir'])
 call([
     'bash',
     'USBCreator/CloverExtract.command'])
+time.sleep(3)
 modpost(11)
