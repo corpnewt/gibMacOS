@@ -123,7 +123,6 @@ elif os_name == 'Linux':
 else:
     print ''
 try:
-    global test_ver
     test_var = p_id
 except:
     print 'Unsupported OS: ', os_name, '\nPlease ask for support on https://github.com/corpnewt/gibmacOS on the PR for this file'
