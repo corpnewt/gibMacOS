@@ -257,6 +257,7 @@ if(p_id == 2):
 disk = str(raw_input('Please type in name of disk (ex: sdX, diskX, rdiskX etc.): '))
 disk = '/dev/' + disk
 modpost(7)
+magic_num = str(raw_input('Please enter magic number now. This number is what sits between the disk and partition number.\nFor example in /dev/disk1sX, the magic number is s and in /dev/sdaX, the magic number is '' (just hit enter)\nIf you do not know this, enter lsblk or diskutil list to find out. Hit ENTER for /dev/sdXY cases where there is no magic number (or letter)\n'))
 if clover == 0:
     confirm_str = 'WARNING: This will delete all data on ' + disk + '.\nIf you want to continue, wait for 3 seconds. Otherwise hit Ctrl-C\n'
     print confirm_str
@@ -299,12 +300,6 @@ if clover == 0:
         '-tdmg',
         'Base*.dmg',
         '*.hfs'])
-    if(p_id == 2):
-        magic_num = 'p'
-    if(p_id == 1):
-        magic_num = 's'
-    if(p_id == 3):
-        magic_num = ''
     modpost(9)
     outstr = 'of=' + disk + magic_num + '2'
     print 'Image will now be written to device.\nPlease be patient!'
@@ -315,12 +310,6 @@ if clover == 0:
         'bs=1M', # Needed for FreeBSD and MacOS for good write speeds 
         'status=progress',
         outstr])
-if(p_id == 2):
-    magic_num = 'p'
-if(p_id == 1):
-    magic_num = 's'
-if(p_id == 3):
-    magic_num = ''
 outstr = disk + magic_num + '1'
 modpost(10)
 print 'Installing CLOVER on ', outstr, '\nPlease wait...'
