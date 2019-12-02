@@ -58,7 +58,13 @@ mod_out = ['-3', '-3', '-3', '-3', '-3', []] # Mod_out's structure
 global t_mod_out # Same thing here
 t_mod_out = mod_out # Initially they are the same
 def modpost(task_id):
-    ## Register custom USBCreate imports here (usually mod_out = module_name.module(arg)) ##
+    global p_id
+    global dd
+    global pprobe
+    global dosfs
+    global misc_data
+    global exp
+    # Register custom USBCreate imports here (usually mod_out = module_name.module(arg)) ##
     # Structure:
     # t_mod_out = module_name.module(args)                        			# DESCRIPTION
 
@@ -69,15 +75,21 @@ def modpost(task_id):
     try:
         if t_mod_out[0] != '-3':
             mod_out[0] = t_mod_out[0]
+            p_id = mod_out[0]
         if t_mod_out[1] != '-3':
             mod_out[1] = t_mod_out[1]
+            exp = mod_out[1]
         if t_mod_out[2] != '-3':
             mod_out[2] = t_mod_out[2]
+            dd = mod_out[2]
         if t_mod_out[3] != '-3':
             mod_out[3] = t_mod_out[3]
+            pprobe = mod_out[3]
         if t_mod_out[4] != '-3':
             mod_out[4] = t_mod_out[4]
+            dosfs = mod_out[4]
         mod_out[5] = t_mod_out[5] # No matter what, set misc_data in mod_out[5]
+        misc_data = mod_out[5]
     except:
         print 'Failed to load custom modules. Please remove bad or old custom modules. The support code for this error is CLEAR_SKY'
         sys.exit(-1) 
@@ -109,6 +121,11 @@ elif os_name == 'Linux':
     pprobe = 'partprobe'
     dosfs = 'mkfs.vfat'
 else:
+    print ''
+try:
+    global test_ver
+    test_var = p_id
+except:
     print 'Unsupported OS: ', os_name, '\nPlease ask for support on https://github.com/corpnewt/gibmacOS on the PR for this file'
     p_id = -1
     sys.exit(-1)
