@@ -100,7 +100,7 @@ modpost(0)
 print '############################### USBCreate ################################'
 os_name = platform.system()
 if os_name == 'Darwin':
-    print 'Found OS: macOS\nThis is EXPERIMENTAL and partprobe will not work so you need to make sure said disk is unmounted and not in use. You also will need wget, curl, dosfstools, gptfdisk, coreutils and jq installed from brew, MacPorts or from source code\nPlease install all dependencies or you will encounter issues!'
+    print 'Found OS: macOS\nThis is EXPERIMENTAL and partprobe will not work so you need to make sure said disk is unmounted and not in use. You also will need p7zip, wget, curl, dosfstools, gptfdisk, coreutils and jq installed from brew, MacPorts or from source code\nPlease install all dependencies or you will encounter issues!'
     p_id = 1
     exp = 1
     dd = 'gdd' # Needed for status=progress
@@ -114,7 +114,7 @@ elif os_name == 'FreeBSD':
     pprobe = 'echo'
     dosfs = 'newfs_msdos'
 elif os_name == 'Linux':
-    print 'Found OS: Linux\nThis should work correctly but may still have bugs. Not considered fully experimental however as I have tested it and it works.\nYou need jq, gptfdisk, dosfstools, curl, parted and coreutils installed for this to work correctly or at all' 
+    print 'Found OS: Linux\nThis should work correctly but may still have bugs. Not considered fully experimental however as I have tested it and it works.\nYou need p7zip, jq, gptfdisk, dosfstools, curl, parted and coreutils installed for this to work correctly or at all\nYou need p7zip AND p7zip-plugins on Fedora'
     p_id = 3
     exp = 0
     dd = 'dd'
