@@ -160,8 +160,8 @@ class WinUSB:
     def get_dl_info(self,clover_version=None):
         # Returns the latest download package and info in a
         # dictionary:  { "url" : dl_url, "name" : name, "info" : update_info }
-        # Attempt Clover's official repo first - falling back on Dids' repo as needed
-        for url in (self.clover_url,self.dids_url):
+        # Attempt Dids' repo first - falling back on Clover's official repo as needed
+        for url in (self.dids_url,self.clover_url):
             # Tag is 5098 on Slice's repo, and v2.5k_r5098 on Dids' - accommodate as needed
             search_url = url if clover_version == None else "{}/tags/{}".format(url,clover_version if url == self.clover_url else "v2.{}k_r{}".format(clover_version[0],clover_version))
             print(" - Checking {}".format(search_url))
