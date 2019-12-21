@@ -214,6 +214,10 @@ modpost(3)
 if clover == 0:
     
     try:
+        print 'Going to run gibMacOS. Please choose the version of macOS you want and/or change your catalog (to get betas) to what you want, desire or need.\nOnce you have done this, hit Q.\nNOTE: Please ensure that you have picked and downloaded one and only 1 version of macOS. Nothing more or less or this will obviously fail.'
+        print 'Hit ENTER to continue\n'
+        tmp_var = raw_input('')
+        modpost(999) # Use 999 to avoid conflict and complex rename
         call([
             'python2',
             'gibMacOS.command',
