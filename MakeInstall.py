@@ -24,6 +24,7 @@ class WinUSB:
         self.bi_name = "BOOTICEx64.exe"
         self.clover_url = "https://api.github.com/repos/CloverHackyColor/CloverBootloader/releases"
         self.dids_url = "https://api.github.com/repos/dids/clover-builder/releases"
+        self.diskpart = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Windows", "System32", "diskpart.exe")
         # From Tim Sutton's brigadier:  https://github.com/timsutton/brigadier/blob/master/brigadier
         self.z_path = None
         self.z_path64 = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Program Files", "7-Zip", "7z.exe")
@@ -195,7 +196,7 @@ class WinUSB:
             self.u.grab("Press [enter] to return...")
             return
         # Let's try to run it!
-        out = self.r.run({"args":["diskpart","/s",script],"stream":True})
+        out = self.r.run({"args":[self.diskpart,"/s",script],"stream":True})
         # Ditch our script regardless of whether diskpart worked or not
         shutil.rmtree(temp)
         print("")
@@ -226,7 +227,9 @@ class WinUSB:
                 "create partition primary size=200",
                 "format quick fs=fat32 label='CLOVER'",
                 "active",
-                "create partition primary id=AB" # AF = HFS, AB = Recovery
+                "create partition primary id=AB", # AF = HFS, AB = Recovery
+                "select part 1",
+                "assign"
             ])
         else:
             print("Using GPT...")
@@ -250,7 +253,7 @@ class WinUSB:
             self.u.grab("Press [enter] to return...")
             return
         # Let's try to run it!
-        out = self.r.run({"args":["diskpart","/s",script],"stream":True})
+        out = self.r.run({"args":[self.diskpart,"/s",script],"stream":True})
         # Ditch our script regardless of whether diskpart worked or not
         shutil.rmtree(temp)
         if out[2] != 0:
