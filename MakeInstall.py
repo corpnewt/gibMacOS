@@ -24,6 +24,11 @@ class WinUSB:
         self.bi_name = "BOOTICEx64.exe"
         self.clover_url = "https://api.github.com/repos/CloverHackyColor/CloverBootloader/releases"
         self.dids_url = "https://api.github.com/repos/dids/clover-builder/releases"
+        self.oc_url = "https://api.github.com/repos/acidanthera/OpenCorePkg/releases"
+        self.oc_boot = "boot"
+        self.oc_boot0 = "boot0af"
+        self.oc_boot1 = "boot1f32"
+        self.oc_boot_url = "https://github.com/acidanthera/OcSupportPkg/raw/master/Utilities/BootInstall/"
         self.diskpart = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Windows", "System32", "diskpart.exe")
         # From Tim Sutton's brigadier:  https://github.com/timsutton/brigadier/blob/master/brigadier
         self.z_path = None
@@ -147,12 +152,12 @@ class WinUSB:
         print("")
         return os.path.exists(os.path.join(self.s_path,self.bi_name))
 
-    def get_dl_url_from_json(self,json_data):
+    def get_dl_url_from_json(self,json_data,suffix=".lzma"):
         try: j_list = json.loads(json_data)
         except: return None
         j_list = j_list if isinstance(j_list,list) else [j_list]
         for j in j_list:
-            dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").lower().endswith(".lzma")), None)
+            dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").lower().endswith(suffix.lower())), None)
             if dl_link: break
         if not dl_link:
             return None
@@ -170,6 +175,11 @@ class WinUSB:
             if not json_data: print(" --> Not found!")
             else: return self.get_dl_url_from_json(json_data)
         return None
+
+    def get_oc_dl_info(self):
+        json_data = self.dl.get_string(self.oc_url, False)
+        if not json_data: print(" --> Not found!")
+        else: return self.get_dl_url_from_json(json_data,"-RELEASE.zip")
 
     def diskpart_flag(self, disk, as_efi=False):
         # Sets and unsets the GUID needed for a GPT EFI partition ID
@@ -225,7 +235,7 @@ class WinUSB:
                 "clean",
                 "convert mbr",
                 "create partition primary size=200",
-                "format quick fs=fat32 label='CLOVER'",
+                "format quick fs=fat32 label='BOOT'",
                 "active",
                 "create partition primary id=AB", # AF = HFS, AB = Recovery
                 "select part 1",
@@ -238,7 +248,7 @@ class WinUSB:
                 "clean",
                 "convert gpt",
                 "create partition primary size=200",
-                "format quick fs=fat32 label='CLOVER'",
+                "format quick fs=fat32 label='BOOT'",
                 "create partition primary id={}".format(self.hfs_id)
             ])
         temp = tempfile.mkdtemp()
@@ -293,7 +303,7 @@ class WinUSB:
             return
         path = self.u.check_path(menu)
         if not path:
-            self.select_package(disk)
+            self.select_package(disk, clover_version)
             return
         # Got the package - let's make sure it's named right - just in case
         if os.path.basename(path).lower().endswith(".hfs"):
@@ -315,7 +325,7 @@ class WinUSB:
             print("Ensure you're passing a proper recovery package.")
             print("")
             self.u.grab("Press [enter] to return to package selection...")
-            self.select_package(disk)
+            self.select_package(disk, clover_version)
             return
         self.u.head("Extracting Package")
         print("")
@@ -404,8 +414,122 @@ class WinUSB:
             print("")
             self.u.grab("Press [enter] to return to the main menu...")
             return
-        # Install Clover to the target drive
-        self.install_clover(disk, clover_version)
+        # Install Clover/OC to the target drive
+        if clover_version == "OpenCore": self.install_oc(disk)
+        else: self.install_clover(disk, clover_version)
+
+    def install_oc(self, disk):
+        self.u.head("Installing OpenCore")
+        print("")
+        print("Gathering info...")
+        o = self.get_oc_dl_info()
+        if o == None:
+            print(" - Error communicating with github!")
+            print("")
+            self.u.grab("Press [enter] to return...")
+            return
+        print(" - Got {}".format(o.get("name","Unknown Version")))
+        print("Downloading...")
+        temp = tempfile.mkdtemp()
+        os.chdir(temp)
+        oc_zip = o["name"]
+        self.dl.stream_to_file(o["url"], os.path.join(temp, o["name"]))
+        print("") # Empty space to clear the download progress
+        if not os.path.exists(os.path.join(temp, o["name"])):
+            shutil.rmtree(temp,ignore_errors=True)
+            print(" - Download failed.  Aborting...")
+            print("")
+            self.u.grab("Press [enter] to return...")
+            return
+        # Got a valid file in our temp dir
+        print("Extracting {}...".format(oc_zip))
+        out = self.r.run({"args":[self.z_path, "x", os.path.join(temp,oc_zip)]})
+        if out[2] != 0:
+            shutil.rmtree(temp,ignore_errors=True)
+            print(" - An error occurred extracting: {}".format(out[2]))
+            print("")
+            self.u.grab("Press [enter] to return...")
+            return
+        # We need to also gather our boot, boot0af, and boot1f32 files
+        print("Gathering DUET boot files...")
+        for x in (self.oc_boot,self.oc_boot0,self.oc_boot1):
+            print(" - {}".format(x))
+            self.dl.stream_to_file(self.oc_boot_url + x, os.path.join(temp,x),False)
+        # At this point, we should have a boot0xx file and an EFI folder in the temp dir
+        # We need to udpate the disk list though - to reflect the current file system on part 1
+        # of our current disk
+        self.d.update() # assumes our disk number stays the same
+        # Some users are having issues with the "partitions" key not populating - possibly a 3rd party disk management soft?
+        # Possibly a bad USB?
+        # We'll see if the key exists - if not, we'll throw an error.
+        if self.d.disks[str(disk["index"])].get("partitions",None) == None:
+            # No partitions found.
+            shutil.rmtree(temp,ignore_errors=True)
+            print("No partitions located on disk!")
+            print("")
+            self.u.grab("Press [enter] to return...")
+            return
+        part = self.d.disks[str(disk["index"])]["partitions"].get("0",{}).get("letter",None) # get the first partition's letter
+        if part == None:
+            shutil.rmtree(temp,ignore_errors=True)
+            print("Lost original disk - or formatting failed!")
+            print("")
+            self.u.grab("Press [enter] to return...")
+            return
+        # Here we have our disk and partitions and such - the BOOT partition
+        # will be the first partition
+        # Let's copy over the EFI folder and then dd the boot0xx file
+        print("Copying EFI folder to {}/EFI...".format(part))
+        if os.path.exists("{}/EFI".format(part)):
+            print(" - EFI exists - removing...")
+            shutil.rmtree("{}/EFI".format(part),ignore_errors=True)
+            time.sleep(1) # Added because windows is dumb
+        shutil.copytree(os.path.join(temp,"EFI"), "{}/EFI".format(part))
+        # Copy boot over to the root of the EFI volume
+        print("Copying {} to {}/boot...".format(self.oc_boot,part))
+        shutil.copy(os.path.join(temp,self.oc_boot),"{}/boot".format(part))
+        # Use bootice to update the MBR and PBR - always on the first
+        # partition (which is 0 in bootice)
+        print("Updating the MBR with {}...".format(self.oc_boot0))
+        args = [
+            os.path.join(self.s_path,self.bi_name),
+            "/device={}".format(disk.get("index",-1)),
+            "/mbr",
+            "/restore",
+            "/file={}".format(os.path.join(temp,self.oc_boot0)),
+            "/keep_dpt",
+            "/quiet"
+        ]
+        out = self.r.run({"args":args})
+        if out[2] != 0:
+            shutil.rmtree(temp,ignore_errors=True)
+            print(" - An error occurred updating the MBR: {}".format(out[2]))
+            print("")
+            self.u.grab("Press [enter] to return...")
+            return
+        print("Updating the PBR with {}...".format(self.oc_boot1))
+        args = [
+            os.path.join(self.s_path,self.bi_name),
+            "/device={}:0".format(disk.get("index",-1)),
+            "/pbr",
+            "/restore",
+            "/file={}".format(os.path.join(temp,self.oc_boot1)),
+            "/keep_bpb",
+            "/quiet"
+        ]
+        out = self.r.run({"args":args})
+        if out[2] != 0:
+            shutil.rmtree(temp,ignore_errors=True)
+            print(" - An error occurred updating the PBR: {}".format(out[2]))
+            print("")
+            self.u.grab("Press [enter] to return...")
+            return
+        print("Cleaning up...")
+        shutil.rmtree(temp,ignore_errors=True)
+        print("")
+        print("Done.")
+        print("")
+        self.u.grab("Press [enter] to return to the main menu...")
 
     def install_clover(self, disk, clover_version = None):
         self.u.head("Installing Clover - {}".format("Latest" if not clover_version else "r"+clover_version))
@@ -640,6 +764,8 @@ class WinUSB:
         print("Usage: [drive number][option (only one allowed)] r[Clover revision (optional)]\n  (eg. 1C r5092)")
         print("  Options are as follows with precedence C > E > U > G:")
         print("    C = Only install Clover to the drive's first partition.")
+        print("    O = Use OpenCore instead of Clover.")
+        print("    I = Only install OpenCore to the drive's first partition.")
         print("    E = Sets the type of the drive's first partition to EFI.")
         print("    U = Similar to E, but sets the type to Basic Data (useful for editing).")
         print("    G = Format as GPT (default is MBR).")
@@ -655,10 +781,16 @@ class WinUSB:
             self.show_all_disks ^= True
             self.main()
             return
-        only_clover = set_efi = unset_efi = use_gpt = False
+        only_clover = use_oc = set_efi = unset_efi = use_gpt = False
         if "c" in menu.lower():
             only_clover = True
             menu = menu.lower().replace("c","")
+        if "i" in menu.lower():
+            only_clover = use_oc = True
+            menu = menu.lower().replace("i","")
+        if "o" in menu.lower():
+            use_oc = True
+            menu = menu.lower().replace("o","")
         if "e" in menu.lower():
             set_efi = True
             menu = menu.lower().replace("e","")
@@ -674,6 +806,9 @@ class WinUSB:
         menu = " ".join([x for x in menu.split() if not x in clover_list])
         clover_version = None if not len(clover_list) else clover_list[0][1:] # Skip the "r" prefix
 
+        # Prepare for OC if need be
+        if use_oc: clover_version = "OpenCore"
+
         selected_disk = rem_disks.get(menu.strip(),None)
         if not selected_disk:
             self.u.head("Invalid Choice")
@@ -685,7 +820,8 @@ class WinUSB:
             return
         # Got a disk!
         if only_clover:
-            self.install_clover(selected_disk, clover_version)
+            if use_oc: self.install_oc(selected_disk)
+            else: self.install_clover(selected_disk, clover_version)
         elif set_efi:
             self.diskpart_flag(selected_disk, True)
         elif unset_efi:
