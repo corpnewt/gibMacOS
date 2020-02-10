@@ -308,7 +308,7 @@ class WinUSB:
         # Got the package - let's make sure it's named right - just in case
         if os.path.basename(path).lower().endswith(".hfs"):
             # We have an hfs image already - bypass extraction
-            self.dd_image(disk, path)
+            self.dd_image(disk, path, clover_version)
             return
         # If it's a directory, find the first recovery hit
         if os.path.isdir(path):
