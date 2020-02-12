@@ -100,55 +100,38 @@ class Utils:
         return (var1, var2)
         
     def check_path(self, path):
-        # Loop until we either get a working path - or no changes
-        count = 0
-        while count < 100:
-            count += 1
-            if not len(path):
-                # We uh.. stripped out everything - bail
-                return None
-            if os.path.exists(path):
-                # Exists!
-                return os.path.abspath(path)
-            # Check quotes first
-            if (path[0] == '"' and path[-1] == '"') or (path[0] == "'" and path[-1] == "'"):
-                path = path[1:-1]
+        # Let's loop until we either get a working path, or no changes
+        test_path = path
+        last_path = None
+        while True:
+            # Bail if we've looped at least once and the path didn't change
+            if last_path != None and last_path == test_path: return None
+            last_path = test_path
+            # Check if we stripped everything out
+            if not len(test_path): return None
+            # Check if we have a valid path
+            if os.path.exists(test_path):
+                return os.path.abspath(test_path)
+            # Check for quotes
+            if test_path[0] == test_path[-1] and test_path[0] in ('"',"'"):
+                test_path = test_path[1:-1]
                 continue
-            # Check for tilde
-            if path[0] == "~":
-                test_path = os.path.expanduser(path)
-                if test_path != path:
-                    # We got a change
-                    path = test_path
+            # Check for a tilde and expand if needed
+            if test_path[0] == "~":
+                tilde_expanded = os.path.expanduser(test_path)
+                if tilde_expanded != test_path:
+                    # Got a change
+                    test_path = tilde_expanded
                     continue
-            # If we have no spaces to trim - bail
-            if not (path[0] == " " or path[0] == "  ") and not(path[-1] == " " or path[-1] == " "):
-                return None
-            # Here we try stripping spaces/tabs
-            test_path = path
-            t_count = 0
-            while t_count < 100:
-                t_count += 1
-                t_path = test_path
-                while len(t_path):
-                    if os.path.exists(t_path):
-                        return os.path.abspath(t_path)
-                    if t_path[-1] == " " or t_path[-1] == "    ":
-                        t_path = t_path[:-1]
-                        continue
-                    break
-                if test_path[0] == " " or test_path[0] == " ":
-                    test_path = test_path[1:]
-                    continue
-                break
-            # Escapes!
-            test_path = "\\".join([x.replace("\\", "") for x in path.split("\\\\")])
-            if test_path != path and not (path[0] == " " or path[0] == "  "):
-                path = test_path
+            # Let's check for spaces - strip from the left first, then the right
+            if test_path[0] in (" ","\t"):
+                test_path = test_path[1:]
                 continue
-            if path[0] == " " or path[0] == "  ":
-                path = path[1:]
-        return None
+            if test_path[-1] in (" ","\t"):
+                test_path = test_path[:-1]
+                continue
+            # Maybe we have escapes to handle?
+            test_path = "\\".join([x.replace("\\", "") for x in test_path.split("\\\\")])
 
     def grab(self, prompt, **kwargs):
         # Takes a prompt, a default, and a timeout and shows it with that timeout
