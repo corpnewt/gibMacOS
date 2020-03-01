@@ -28,7 +28,7 @@ class WinUSB:
         self.oc_boot = "boot"
         self.oc_boot0 = "boot0af"
         self.oc_boot1 = "boot1f32"
-        self.oc_boot_url = "https://github.com/acidanthera/OcSupportPkg/raw/master/Utilities/BootInstall/"
+        self.oc_boot_url = "https://github.com/acidanthera/OpenCorePkg/raw/master/Utilities/BootInstall/"
         self.diskpart = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Windows", "System32", "diskpart.exe")
         # From Tim Sutton's brigadier:  https://github.com/timsutton/brigadier/blob/master/brigadier
         self.z_path = None
