@@ -5,6 +5,10 @@ class WinUSB:
 
     def __init__(self):
         self.u = utils.Utils("MakeInstall")
+        if not self.u.check_admin():
+            # Try to self-elevate
+            self.u.elevate(os.path.realpath(__file__))
+            exit()
         self.min_plat = 9600
         # Make sure we're on windows
         self.verify_os()
