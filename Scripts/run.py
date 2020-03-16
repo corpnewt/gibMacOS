@@ -69,7 +69,8 @@ class Run:
             return (output+o, error+e, p.returncode)
         except:
             if p:
-                o, e = p.communicate()
+                try: o, e = p.communicate()
+                except: o = e = ""
                 return (output+o, error+e, p.returncode)
             return ("", "Command not found!", 1)
 
