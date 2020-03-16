@@ -60,63 +60,69 @@ def writePlist(value, pathOrFile):
 def load(fp, fmt=None, use_builtin_types=None, dict_type=dict):
     if _check_py3():
         use_builtin_types = True if use_builtin_types == None else use_builtin_types
-        return plistlib.load(fp, fmt=fmt, use_builtin_types=use_builtin_types, dict_type=dict_type)
+        # We need to monkey patch this to allow for hex integers - code taken/modified from 
+        # https://github.com/python/cpython/blob/3.8/Lib/plistlib.py
+        if fmt is None:
+            header = fp.read(32)
+            fp.seek(0)
+            for info in plistlib._FORMATS.values():
+                if info['detect'](header):
+                    P = info['parser']
+                    break
+            else:
+                raise plistlib.InvalidFileException()
+        else:
+            P = plistlib._FORMATS[fmt]['parser']
+        p = P(use_builtin_types=use_builtin_types, dict_type=dict_type)
+        if isinstance(p,plistlib._PlistParser):
+            # Monkey patch!
+            def end_integer():
+                d = p.get_data()
+                p.add_object(int(d,16) if d.lower().startswith("0x") else int(d))
+            p.end_integer = end_integer
+        return p.parse(fp)
     elif not _is_binary(fp):
-        # We monkey patch the begin_dict function to allow for other
-        # dict types
+        # Is not binary - assume a string - and try to load
+        # We avoid using readPlistFromString() as that uses
+        # cStringIO and fails when Unicode strings are detected
+        # Don't subclass - keep the parser local
+        from xml.parsers.expat import ParserCreate
+        # Create a new PlistParser object - then we need to set up
+        # the values and parse.
         p = plistlib.PlistParser()
+        # We also need to monkey patch this to allow for other dict_types
         def begin_dict(attrs):
             d = dict_type()
             p.addObject(d)
             p.stack.append(d)
+        def end_integer():
+            d = p.getData()
+            p.addObject(int(d,16) if d.lower().startswith("0x") else int(d))
         p.begin_dict = begin_dict
-        root = p.parse(fp)
-        return root
+        p.end_integer = end_integer
+        parser = ParserCreate()
+        parser.StartElementHandler = p.handleBeginElement
+        parser.EndElementHandler = p.handleEndElement
+        parser.CharacterDataHandler = p.handleData
+        if isinstance(fp, unicode):
+            # Encode unicode -> string; use utf-8 for safety
+            fp = fp.encode("utf-8")
+        if isinstance(fp,_get_inst()):
+            # It's a string - let's wrap it up
+            fp = StringIO(fp)
+        # Parse it
+        parser.ParseFile(fp)
+        return p.root
     else:
         use_builtin_types = False if use_builtin_types == None else use_builtin_types
         p = _BinaryPlistParser(use_builtin_types=use_builtin_types, dict_type=dict_type)
         return p.parse(fp)
 
 def loads(value, fmt=None, use_builtin_types=None, dict_type=dict):
-    if _check_py3():
-        use_builtin_types = True if use_builtin_types == None else use_builtin_types
-        # Requires fp to be a BytesIO wrapper around a bytes object
-        if isinstance(value, _get_inst()):
-            # If it's a string - encode it
-            value = value.encode()
-        # Load it
-        return plistlib.load(BytesIO(value), fmt=fmt, use_builtin_types=use_builtin_types, dict_type=dict_type)
-    else:
-        if _is_binary(value):
-            use_builtin_types = False if use_builtin_types == None else use_builtin_types
-            # Has the proper header to be a binary plist
-            p = _BinaryPlistParser(use_builtin_types=use_builtin_types, dict_type=dict_type)
-            return p.parse(BytesIO(value))
-        else:
-            # Is not binary - assume a string - and try to load
-            # We avoid using readPlistFromString() as that uses
-            # cStringIO and fails when Unicode strings are detected
-            # Don't subclass - keep the parser local
-            from xml.parsers.expat import ParserCreate
-            # Create a new PlistParser object - then we need to set up
-            # the values and parse.
-            p = plistlib.PlistParser()
-            # We also need to monkey patch this to allow for other dict_types
-            def begin_dict(attrs):
-                d = dict_type()
-                p.addObject(d)
-                p.stack.append(d)
-            p.begin_dict = begin_dict
-            parser = ParserCreate()
-            parser.StartElementHandler = p.handleBeginElement
-            parser.EndElementHandler = p.handleEndElement
-            parser.CharacterDataHandler = p.handleData
-            if isinstance(value, unicode):
-                # Encode unicode -> string; use utf-8 for safety
-                value = value.encode("utf-8")
-            # Parse the string
-            parser.Parse(value, 1)
-            return p.root
+    if _check_py3() and isinstance(value, _get_inst()):
+        # If it's a string - encode it
+        value = value.encode()
+    return load(BytesIO(value),fmt=fmt,use_builtin_types=use_builtin_types,dict_type=dict_type)
 
 def dump(value, fp, fmt=FMT_XML, sort_keys=True, skipkeys=False):
     if _check_py3():
