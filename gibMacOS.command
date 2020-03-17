@@ -19,6 +19,7 @@ class gibMacOS:
         }
         self.current_macos = 15
         self.min_macos = 5
+        self.print_urls = False
         self.mac_os_names_url = {
             "8" : "mountainlion",
             "7" : "lion",
@@ -219,26 +220,7 @@ class gibMacOS:
     def download_prod(self, prod, dmg = False):
         # Takes a dictonary of details and downloads it
         self.resize()
-        cwd = os.getcwd()
-        os.chdir(os.path.dirname(os.path.realpath(__file__)))
         name = "{} - {} {}".format(prod["product"], prod["version"], prod["title"]).replace(":","").strip()
-        if os.path.exists(os.path.join(os.getcwd(), self.saves, self.current_catalog, name)):
-            while True:
-                self.u.head("Already Exists")
-                print("")
-                print("It looks like you've already downloaded {}".format(name))
-                print("")
-                menu = self.u.grab("Redownload? (y/n):  ")
-                if not len(menu):
-                    continue
-                if menu[0].lower() == "n":
-                    return
-                if menu[0].lower() == "y":
-                    break
-            # Remove the old copy, then re-download
-            shutil.rmtree(os.path.join(os.getcwd(), self.saves, self.current_catalog, name))
-        # Make it new
-        os.makedirs(os.path.join(os.getcwd(), self.saves, self.current_catalog, name))
         dl_list = []
         for x in prod["packages"]:
             if not x.get("URL",None):
@@ -256,6 +238,34 @@ class gibMacOS:
             return
         c = 0
         done = []
+        if self.print_urls:
+            self.u.head("Download Links")
+            print("")
+            print("{}:\n".format(name))
+            print("\n".join([" - {} \n   --> {}".format(os.path.basename(x), x) for x in dl_list]))
+            print("")
+            self.u.grab("Press [enter] to return...")
+            return
+        # Only check the dirs if we need to
+        cwd = os.getcwd()
+        os.chdir(os.path.dirname(os.path.realpath(__file__)))
+        if os.path.exists(os.path.join(os.getcwd(), self.saves, self.current_catalog, name)):
+            while True:
+                self.u.head("Already Exists")
+                print("")
+                print("It looks like you've already downloaded {}".format(name))
+                print("")
+                menu = self.u.grab("Redownload? (y/n):  ")
+                if not len(menu):
+                    continue
+                if menu[0].lower() == "n":
+                    return
+                if menu[0].lower() == "y":
+                    break
+            # Remove the old copy, then re-download
+            shutil.rmtree(os.path.join(os.getcwd(), self.saves, self.current_catalog, name))
+        # Make it new
+        os.makedirs(os.path.join(os.getcwd(), self.saves, self.current_catalog, name))
         for x in dl_list:
             c += 1
             self.u.head("Downloading File {} of {}".format(c, len(dl_list)))
@@ -379,7 +389,7 @@ class gibMacOS:
         print("")
         num = 0
         w = 0
-        pad = 11
+        pad = 12
         if not len(self.mac_prods):
             print("No installers in catalog!")
             print("")
@@ -399,6 +409,7 @@ class gibMacOS:
         print("")
         print("M. Change Max-OS Version (Currently 10.{})".format(self.current_macos))
         print("C. Change Catalog (Currently {})".format(self.current_catalog))
+        print("I. Only Print URLs (Currently {})".format(self.print_urls))
         if sys.platform.lower() == "darwin":
             pad += 2
             print("S. Set Current Catalog to SoftwareUpdate Catalog")
@@ -423,6 +434,9 @@ class gibMacOS:
             self.pick_macos()
         elif menu[0].lower() == "c":
             self.pick_catalog()
+        elif menu[0].lower() == "i":
+            self.print_urls ^= True
+            return
         elif menu[0].lower() == "l" and sys.platform.lower() == "darwin":
             # Clear the software update catalog
             self.u.head("Clearing SU CatalogURL")
@@ -523,6 +537,7 @@ if __name__ == '__main__':
     parser.add_argument("-p", "--product", help="sets the product id to search for (overrides --version)")
     parser.add_argument("-v", "--version", help="sets the version of macOS to target - eg '-v 10.14' or '-v Yosemite'")
     parser.add_argument("-m", "--maxos", help="sets the max macOS version to consider when building the url - eg 10.14")
+    parser.add_argument("-i", "--print-urls", help="only prints the download URLs, does not actually download them", action="store_true")
     args = parser.parse_args()
 
     g = gibMacOS()
@@ -535,6 +550,9 @@ if __name__ == '__main__':
 
     if args.newlocal:
         g.force_local = True
+
+    if args.print_urls:
+        g.print_urls = True
 
     if args.maxos:
         try:
