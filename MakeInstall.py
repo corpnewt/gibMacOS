@@ -241,7 +241,9 @@ class WinUSB:
                 "create partition primary size=200",
                 "format quick fs=fat32 label='BOOT'",
                 "active",
-                "create partition primary id=AB", # AF = HFS, AB = Recovery
+                "create partition primary",
+                "select part 2",
+                "set id=AB", # AF = HFS, AB = Recovery
                 "select part 1",
                 "assign"
             ])
