@@ -38,15 +38,28 @@ set "spath="
 set "upath="
 for /f "tokens=2* delims= " %%i in ('reg.exe query "HKCU\Environment" /v "Path" 2^> nul') do ( if not "%%j" == "" set "upath=%%j" )
 for /f "tokens=2* delims= " %%i in ('reg.exe query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "Path" 2^> nul') do ( if not "%%j" == "" set "spath=%%j" )
-if not "!spath!" == "" (
+if not "%spath%" == "" (
     REM We got something in the system path
-    set "PATH=!spath!"
+    set "PATH=%spath%"
     if not "!upath!" == "" (
         REM We also have something in the user path
-        set "PATH=!PATH!;!upath!"
+        set "PATH=%PATH%;%upath%"
     )
-) else if not "!upath!" == "" (
-    set "PATH=!upath!"
+) else if not "%upath%" == "" (
+    set "PATH=%upath%"
+)
+REM Remove double semicolons from the adjusted PATH
+call :undouble "PATH" ";"
+goto :EOF
+
+:undouble <string_name> <character>
+REM Helper function to strip doubles of a single character out of a string recursively
+set "string_name=%~1"
+set "character=%~2"
+set "check=!%string_name%:%character%%character%=%character%!"
+if not "!check!" == "!%~1!" (
+    set "!string_name!=!check!"
+    call :undouble "%~1" "%~2"
 )
 goto :EOF
 
