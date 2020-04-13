@@ -244,11 +244,11 @@ class Utils:
         print("www.github.com/corpnewt\n")
         # Get the time and wish them a good morning, afternoon, evening, and night
         hr = datetime.datetime.now().time().hour
-        if hr > 3 and hr < 12:
+        if 3 < hr < 12:
             print("Have a nice morning!\n\n")
-        elif hr >= 12 and hr < 17:
+        elif 12 <= hr < 17:
             print("Have a nice afternoon!\n\n")
-        elif hr >= 17 and hr < 21:
+        elif 17 <= hr < 21:
             print("Have a nice evening!\n\n")
         else:
             print("Have a nice night!\n\n")
