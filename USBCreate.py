@@ -24,7 +24,7 @@
 #
 # * Good programmers should try to keep misc_data empty and do all checks in the module itself. It is only being provided for certain use cases in which data has to be stored for a long time.
 # * Be warned that non-official custom modules are dangerous and can severely damage your computer
-
+from __future__ import print_function # Use python3 prints in python 2
 import os
 import sys
 import tempfile
@@ -42,7 +42,7 @@ import platform
 # Setup custom modules NOW (these may provide additional functionality, add support for now platforms or fix bugs (this will be expanded in API 3))
 def check_module(api):
     if api != 2.1:
-	print 'Module uses API: ', api, ', but this version of USBCreator only supports API 2.1.'
+	print('Module uses API: ', api, ', but this version of USBCreator only supports API 2.1.')
 	sys.exit(-1)
 	
 ## Add custom USBCreate imports here (or to end if you wish) ##
@@ -92,42 +92,42 @@ def modpost(task_id):
         mod_out[5] = t_mod_out[5] # No matter what, set misc_data in mod_out[5]
         misc_data = mod_out[5]
     except:
-        print 'Failed to load custom modules. Please remove bad or old custom modules. The support code for this error is CLEAR_SKY'
+        print('Failed to load custom modules. Please remove bad or old custom modules. The support code for this error is CLEAR_SKY')
         sys.exit(-1) 
 # And you're done...
 
 ## Actual USBCreator code, do not change this
 # Get macOS, Linux or FreeBSD
 modpost(0)
-print '############################### USBCreate ################################'
+print('############################### USBCreate ################################')
 os_name = platform.system()
 if os_name == 'Darwin':
-    print 'Found OS: macOS\nNote: Partprobe will not work so you need to make sure that said disk is unmounted and not in use. You will also need p7zip, wget, curl, dosfstools, gptfdisk, coreutils and jq installed. These can be installed from brew, MacPorts or from source\nPlease install all dependencies or USBCreator will not work correctly'
+    print('Found OS: macOS\nNote: Partprobe will not work so you need to make sure that said disk is unmounted and not in use. You will also need p7zip, wget, curl, dosfstools, gptfdisk, coreutils and jq installed. These can be installed from brew, MacPorts or from source\nPlease install all dependencies or USBCreator will not work correctly')
     p_id = 1
     exp = 1
     dd = 'gdd' # Needed for status=progress. (TODO: use --progress instead of status=progress on macOS. ASR may also be a good choice as well)
     pprobe = 'echo'
     dosfs = 'mkfs.vfat'
 elif os_name == 'FreeBSD':
-    print 'Found OS: FreeBSD\nThis is EXPERIMENTAL and you will need to have lsblk, curl, jq, coreutils, gdisk and p7zip installed from pkg. Some or all functionality may be buggy and/or missing and partitioning may not work properly or at all'
+    print('Found OS: FreeBSD\nThis is EXPERIMENTAL and you will need to have lsblk, curl, jq, coreutils, gdisk and p7zip installed from pkg. Some or all functionality may be buggy and/or missing and partitioning may not work properly or at all')
     p_id = 2
     exp = 1
     dd = 'dd'
     pprobe = 'echo'
     dosfs = 'newfs_msdos'
 elif os_name == 'Linux':
-    print 'Found OS: Linux\nThis should work correctly but may still have bugs. Not considered fully experimental however as I have tested it and it works.\nYou need p7zip, jq, gptfdisk, dosfstools, curl, parted and coreutils installed for this to work correctly or at all\nYou need p7zip AND p7zip-plugins on Fedora'
+    print('Found OS: Linux\nThis should work correctly but may still have bugs. Not considered fully experimental however as I have tested it and it works.\nYou need p7zip, jq, gptfdisk, dosfstools, curl, parted and coreutils installed for this to work correctly or at all\nYou need p7zip AND p7zip-plugins on Fedora')
     p_id = 3
     exp = 0
     dd = 'dd'
     pprobe = 'partprobe'
     dosfs = 'mkfs.vfat'
 else:
-    print ''
+    print('')
 try:
     test_var = p_id
 except:
-    print 'Unsupported OS: ', os_name, '\nPlease ask for support on https://github.com/corpnewt/gibmacOS on the PR for this file'
+    print('Unsupported OS: ', os_name, '\nPlease ask for support at https://github.com/corpnewt/gibmacOS')
     p_id = -1
     sys.exit(-1)
 
@@ -137,16 +137,16 @@ wait_for_input()
 # implement this for custom modules to use exp
 def exp_test():
     if exp == 1:
-        print '############################### USBCreate ################################' 
+        print('############################### USBCreate ################################')
         exp_test_input = str(raw_input('This configuration is EXPERIMENTAL. Are you sure you wish to continue (Y/N)? '))
         if exp_test_input == 'Y' or exp_test_input == 'y':
             return 0
         elif exp_test_input == 'N' or exp_test_input == 'n':
-            print 'Exiting...'
+            print('Exiting...')
             modpost(98)
             sys.exit(-1)
         else:
-            print 'Invalid response, try again in 2 seconds... '
+            print('Invalid response, try again in 2 seconds... ')
             time.sleep(2)
             modpost(99)
             exp_test()
@@ -164,9 +164,9 @@ def check_admin():
 
 is_admin = check_admin()
 if is_admin == False:
-    print 'You must be running as root in order to use this tool!. Tap Ctrl-C to stop auto elavation. '
+    print('You must be running as root in order to use this tool!. Tap Ctrl-C to stop auto elavation. ')
     sleep(3)
-    print 'Attempting to elevate you via sudo'
+    print('Attempting to elevate you via sudo')
     
     try:
         p = subprocess.Popen([
@@ -177,22 +177,22 @@ if is_admin == False:
             sys.executable,
             'python2'] + sys.argv)
     except:
-        print ' An Elevation error has occured. Please share support code BUMBLEBEE'
+        print('An Elevation error has occured. Please share support code BUMBLEBEE')
         sys.exit(-1)
 
     is_admin = check_admin()
     if is_admin == False:
-        print ' An Elevation error has occured. Please share support code ROOTPAW'
+        print('An Elevation error has occured. Please share support code ROOTPAW')
         sys.exit(-1)
     
 modpost(2)
 
 def clover_input():
-    print '############################### USBCreate ################################'
+    print('############################### USBCreate ################################')
     try:
         clover_only = str(raw_input('\nWould you like to just install clover without the other stuff (Clover install failed).\nDisk must be partitioned in order to do this. \nType C to just install clover.\ntype F to continue the full usb creation.\nType Q to exit. \nIf unsure type F\n'))
     except:
-        print 'Invalid response, try again in 2 seconds... '
+        print('Invalid response, try again in 2 seconds... ')
         sleep(3)
         modpost(99)
         clover_input()
@@ -202,11 +202,11 @@ def clover_input():
     if clover_only == 'F':
         return 0
     if clover_only == 'Q':
-        print 'Exiting...'
+        print('Exiting...')
         modpost(98)
         sys.exit(0) #NotMySquirrelflight
     else:
-        print 'Invalid response, try again in 2 seconds'
+        print('Invalid response, try again in 2 seconds')
         sleep(3)
         modpost(99)
         clover_input()
@@ -216,8 +216,8 @@ modpost(3)
 if clover == 0:
     
     try:
-        print 'Going to run gibMacOS.\n Please choose the version of macOS you want.\nNOTE: You may change your catalog to get betas or other specific builds.\nNOTE 2: Please also ensure that you have picked and downloaded only 1 version of macOS. You may remove "macOS Downloads" and *.dmg/*.hfs to do this.'
-        print 'Hit ENTER to continue\n'
+        print('Going to run gibMacOS.\n Please choose the version of macOS you want.\nNOTE: You may change your catalog to get betas or other specific builds.\nNOTE 2: Please also ensure that you have picked and downloaded only 1 version of macOS. You may remove "macOS Downloads" and *.dmg/*.hfs to do this.')
+        print('Hit ENTER to continue\n')
         tmp_var = raw_input('')
         modpost(999) # Use 999 to avoid conflict and complex rename
         call([
@@ -225,20 +225,20 @@ if clover == 0:
             'gibMacOS.command',
             '-r'])
     except:
-        print 'gibMacOS failed to execute. Please share support code FIRESTAR'
+        print('gibMacOS failed to execute. Please share support code FIRESTAR')
         sys.exit(-1)
 
     folder_name = "'macOS Downloads'/*/*/*"
 modpost(4)
 if clover == 1:
-    print 'Ignore all mv errors...'
+    print('Ignore all mv errors...')
 
 try:
     call([
         'bash',
         'USBCreator/PkgCopy.command'])
 except:
-    print 'Failed to copy pkg file. Please share support code DARKSTALKER'
+    print('Failed to copy pkg file. Please share support code DARKSTALKER')
     sys.exit(-1)
 modpost(5)
 
@@ -246,7 +246,7 @@ try:
     i = 1
     marked = 0
     while i < 200 and marked == 0:
-        print 'Reading the clover download list'
+        print('Reading the clover download list')
         clover_url = linecache.getline('clover_dl.list', i)
         clover_url = clover_url.rstrip('\n')
         contains = clover_url.__contains__('lzma')
@@ -256,12 +256,12 @@ try:
             i += 1
         clover_url = linecache.getline('clover_dl.list', i)
         clover_url = clover_url.rstrip('\n')
-    print 'Got clover download URL as: ', clover_url
+    print('Got clover download URL as: ', clover_url)
 except:
-    print 'An unexpected error has occurred. Please share support code RAVENPAW'
+    print('An unexpected error has occurred. Please share support code RAVENPAW')
     sys.exit(-1)
 
-print 'Waiting for 3 seconds'
+print('Waiting for 3 seconds')
 sleep(3)
 modpost(6)
 if(p_id == 3):
@@ -282,7 +282,7 @@ modpost(7)
 magic_num = str(raw_input('Please enter magic number now. This number is what sits between the disk and partition number.\nFor example in /dev/disk1sX, the magic number is s and in /dev/sdaX, the magic number is '' (just hit enter)\nIf you do not know this, enter lsblk or diskutil list to find out. Hit ENTER for /dev/sdXY cases where there is no magic number (or letter)\n'))
 if clover == 0:
     confirm_str = 'WARNING: This will delete all data on ' + disk + '.\nIf you want to continue, wait for 3 seconds. Otherwise hit Ctrl-C\n'
-    print confirm_str
+    print(confirm_str)
     sleep(3)
     call([
         'sgdisk',
@@ -303,7 +303,7 @@ if clover == 0:
     call([
         pprobe])
     modpost(8)
-    print "Image extraction in progress...\nType Y when asked if you are not sure.\nIn general, delete old files in checkout to solve the 'problem'. "
+    print('Image extraction in progress...\nType Y when asked if you are not sure.\nIn general, you should start with a clean download of gibMacOSto solve any extraction issues. ')
     sleep(3)
     call([
         '7z',
@@ -324,7 +324,7 @@ if clover == 0:
         '*.hfs'])
     modpost(9)
     outstr = 'of=' + disk + magic_num + '2'
-    print 'Image will now be written to device.\nPlease be patient!'
+    print('Image will now be written to device.\nPlease be patient!')
     sleep(5)
     call([
         dd,
@@ -334,7 +334,7 @@ if clover == 0:
         outstr])
 outstr = disk + magic_num + '1'
 modpost(10)
-print 'Installing CLOVER on ', outstr, '\nPlease wait...'
+print('Installing CLOVER on ', outstr, '\nPlease wait...')
 sleep(3)
 call([
     dosfs,
@@ -347,7 +347,7 @@ call([
 call([
     'wget',
     clover_url])
-print "Clover extraction might error out. If so, don't panic. Just install it manually by extracting and mounting iso and copying all files to your USB.\nAlso on FreeBSD mount may appear to fail, just ignore this."
+print("Clover extraction might error out. If so, don't panic. Just install it manually by extracting and mounting iso and copying all files to your USB.\nAlso on FreeBSD mount may appear to fail, just ignore this.")
 sleep(3)
 call([
     'mkdir',
