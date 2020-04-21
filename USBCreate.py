@@ -25,6 +25,7 @@
 # * Good programmers should try to keep misc_data empty and do all checks in the module itself. It is only being provided for certain use cases in which data has to be stored for a long time.
 # * Be warned that non-official custom modules are dangerous and can severely damage your computer
 from __future__ import print_function # Use python3 prints in python 2
+from six.moves import input as raw_input # python 3 raw_input support
 import os
 import sys
 import tempfile
