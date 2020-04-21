@@ -40,17 +40,18 @@ import linecache
 import platform
 
 # Setup custom modules NOW (these may provide additional functionality, add support for now platforms or fix bugs (this will be expanded in API 3))
-api = -1
-
+def check_module(api):
+    if api != 2.1:
+	print 'Module uses API: ', api, ', but this version of USBCreator only supports API 2.1.'
+	sys.exit(-1)
+	
 ## Add custom USBCreate imports here (or to end if you wish) ##
 import USBCreateClearScreen
+check_module(USBCreateClearScreen.api) # Do this for modules unless specified otherwise
 
-# Get needed properties
-api = USBCreateClearScreen.api # Do this for each module
-# APITest
-if api != 2.1:
-    print 'Unsupported custom imports or basic import not found\n'
-    sys.exit(-1)
+
+	
+	
 # task_id is where USBCreate is in execution. You can add code before it runs via this argument, modifying or patching code is coming in API 3 
 
 global mod_out # It has to be global throughout all code
@@ -95,15 +96,16 @@ def modpost(task_id):
         sys.exit(-1) 
 # And you're done...
 
+## Actual USBCreator code, do not change this
 # Get macOS, Linux or FreeBSD
 modpost(0)
 print '############################### USBCreate ################################'
 os_name = platform.system()
 if os_name == 'Darwin':
-    print 'Found OS: macOS\nThis is EXPERIMENTAL and partprobe will not work so you need to make sure said disk is unmounted and not in use. You also will need p7zip, wget, curl, dosfstools, gptfdisk, coreutils and jq installed from brew, MacPorts or from source code\nPlease install all dependencies or you will encounter issues!'
+    print 'Found OS: macOS\nNote: Partprobe will not work so you need to make sure that said disk is unmounted and not in use. You will also need p7zip, wget, curl, dosfstools, gptfdisk, coreutils and jq installed. These can be installed from brew, MacPorts or from source\nPlease install all dependencies or USBCreator will not work correctly'
     p_id = 1
     exp = 1
-    dd = 'gdd' # Needed for status=progress
+    dd = 'gdd' # Needed for status=progress. (TODO: use --progress instead of status=progress on macOS. ASR may also be a good choice as well)
     pprobe = 'echo'
     dosfs = 'mkfs.vfat'
 elif os_name == 'FreeBSD':
@@ -188,7 +190,7 @@ modpost(2)
 def clover_input():
     print '############################### USBCreate ################################'
     try:
-        clover_only = str(raw_input('\nWould you like to just install clover without the other stuff (Clover install failed). \nDisk must be partitioned in order to do this. \nType C to just install clover or type N to continue the full usb creation. \nType Q to exit. \nIf unsure type N\n'))
+        clover_only = str(raw_input('\nWould you like to just install clover without the other stuff (Clover install failed).\nDisk must be partitioned in order to do this. \nType C to just install clover.\ntype F to continue the full usb creation.\nType Q to exit. \nIf unsure type F\n'))
     except:
         print 'Invalid response, try again in 2 seconds... '
         sleep(3)
@@ -197,12 +199,12 @@ def clover_input():
 
     if clover_only == 'C':
         return 1
-    if clover_only == 'N':
+    if clover_only == 'F':
         return 0
     if clover_only == 'Q':
         print 'Exiting...'
         modpost(98)
-        sys.exit(-1)
+        sys.exit(0) #NotMySquirrelflight
     else:
         print 'Invalid response, try again in 2 seconds'
         sleep(3)
@@ -214,7 +216,7 @@ modpost(3)
 if clover == 0:
     
     try:
-        print 'Going to run gibMacOS. Please choose the version of macOS you want and/or change your catalog (to get betas) to what you want, desire or need.\nOnce you have done this, hit Q.\nNOTE: Please ensure that you have picked and downloaded one and only 1 version of macOS. Nothing more or less or this will obviously fail.'
+        print 'Going to run gibMacOS.\n Please choose the version of macOS you want.\nNOTE: You may change your catalog to get betas or other specific builds.\nNOTE 2: Please also ensure that you have picked and downloaded only 1 version of macOS. You may remove "macOS Downloads" and *.dmg/*.hfs to do this.'
         print 'Hit ENTER to continue\n'
         tmp_var = raw_input('')
         modpost(999) # Use 999 to avoid conflict and complex rename
