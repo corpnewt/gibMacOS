@@ -26,6 +26,7 @@
 # * Be warned that non-official custom modules are dangerous and can severely damage your computer
 from __future__ import print_function # Use python3 prints in python 2
 from six.moves import input as raw_input # python 3 raw_input support
+import six
 import os
 import sys
 import tempfile
@@ -43,16 +44,13 @@ import platform
 # Setup custom modules NOW (these may provide additional functionality, add support for now platforms or fix bugs (this will be expanded in API 3))
 def check_module(api):
     if api != 2.1:
-	print('Module uses API: ', api, ', but this version of USBCreator only supports API 2.1.')
-	sys.exit(-1)
+        print('Module uses API: ', api, ', but this version of USBCreator only supports API 2.1.')
+        sys.exit(-1)
 	
 ## Add custom USBCreate imports here (or to end if you wish) ##
 import USBCreateClearScreen
 check_module(USBCreateClearScreen.api) # Do this for modules unless specified otherwise
 
-
-	
-	
 # task_id is where USBCreate is in execution. You can add code before it runs via this argument, modifying or patching code is coming in API 3 
 
 global mod_out # It has to be global throughout all code
@@ -174,9 +172,15 @@ if is_admin == False:
             'which',
             'sudo'], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
         c = p.communicate()[0].decode('utf-8', 'ignore').replace('\n', '')
-        os.execv(c, [
-            sys.executable,
-            'python2'] + sys.argv)
+        if six.PY2:
+            os.execv(c, [
+                sys.executable,
+                'python2'] + sys.argv)
+        else:
+            # User is using python3
+            os.execv(c, [
+                sys.executable,
+                'python3'] + sys.argv)
     except:
         print('An Elevation error has occured. Please share support code BUMBLEBEE')
         sys.exit(-1)
@@ -221,10 +225,17 @@ if clover == 0:
         print('Hit ENTER to continue\n')
         tmp_var = raw_input('')
         modpost(999) # Use 999 to avoid conflict and complex rename
-        call([
-            'python2',
-            'gibMacOS.command',
-            '-r'])
+        if(six.PY2):
+            call([
+                'python2',
+                'gibMacOS.command',
+                '-r'])
+        else:
+            # User is using python3
+            call([
+                'python3',
+                'gibMacOS.command',
+                '-r'])
     except:
         print('gibMacOS failed to execute. Please share support code FIRESTAR')
         sys.exit(-1)
