@@ -98,24 +98,23 @@ def modpost(task_id):
 ## Actual USBCreator code, do not change this
 # Get macOS, Linux or FreeBSD
 modpost(0)
-print('############################### USBCreate ################################')
 os_name = platform.system()
 if os_name == 'Darwin':
-    print('Found OS: macOS\nNote: Partprobe will not work so you need to make sure that said disk is unmounted and not in use. You will also need p7zip, wget, curl, dosfstools, gptfdisk, coreutils and jq installed. These can be installed from brew, MacPorts or from source\nPlease install all dependencies or USBCreator will not work correctly')
+    print('Found OS: macOS\nNote: Partprobe will not work so you need to make sure that said disk is unmounted and not in use. You will also need p7zip, dosfstools and gptfdisk installed. These can be installed from brew, MacPorts or from source\nPlease install all dependencies or USBCreator will not work correctly')
     p_id = 1
     exp = 1
     dd = 'gdd' # Needed for status=progress. (TODO: use --progress instead of status=progress on macOS. ASR may also be a good choice as well)
     pprobe = 'echo'
     dosfs = 'mkfs.vfat'
 elif os_name == 'FreeBSD':
-    print('Found OS: FreeBSD\nThis is EXPERIMENTAL and you will need to have lsblk, curl, jq, coreutils, gdisk and p7zip installed from pkg. Some or all functionality may be buggy and/or missing and partitioning may not work properly or at all')
+    print('Found OS: FreeBSD\nYou will need to have lsblk,  coreutils, gdisk and p7zip installed from pkg. Some or all functionality may be buggy and/or missing and partitioning may not work properly or at all')
     p_id = 2
     exp = 1
     dd = 'dd'
     pprobe = 'echo'
     dosfs = 'newfs_msdos'
 elif os_name == 'Linux':
-    print('Found OS: Linux\nThis should work correctly but may still have bugs. Not considered fully experimental however as I have tested it and it works.\nYou need p7zip, jq, gptfdisk, dosfstools, curl, parted and coreutils installed for this to work correctly or at all\nYou need p7zip AND p7zip-plugins on Fedora')
+    print('Found OS: Linux\nThis should work correctly but may still have bugs. Not considered fully experimental however as I have tested it and it works.\nYou need p7zip, gptfdisk, dosfstools, parted and coreutils installed for this to work correctly or at all\nYou need p7zip AND p7zip-plugins on Fedora')
     p_id = 3
     exp = 0
     dd = 'dd'
@@ -136,7 +135,6 @@ wait_for_input()
 # implement this for custom modules to use exp
 def exp_test():
     if exp == 1:
-        print('############################### USBCreate ################################')
         exp_test_input = str(raw_input('This configuration is EXPERIMENTAL. Are you sure you wish to continue (Y/N)? '))
         if exp_test_input == 'Y' or exp_test_input == 'y':
             return 0
@@ -191,60 +189,29 @@ if is_admin == False:
         sys.exit(-1)
     
 modpost(2)
-
-def clover_input():
-    print('############################### USBCreate ################################')
-    try:
-        clover_only = str(raw_input('\nWould you like to just install clover without the other stuff (Clover install failed).\nDisk must be partitioned in order to do this. \nType C to just install clover.\ntype F to continue the full usb creation.\nType Q to exit. \nIf unsure type F\n'))
-    except:
-        print('Invalid response, try again in 2 seconds... ')
-        sleep(3)
-        modpost(99)
-        clover_input()
-
-    if clover_only == 'C':
-        return 1
-    if clover_only == 'F':
-        return 0
-    if clover_only == 'Q':
-        print('Exiting...')
-        modpost(98)
-        sys.exit(0) #NotMySquirrelflight
-    else:
-        print('Invalid response, try again in 2 seconds')
-        sleep(3)
-        modpost(99)
-        clover_input()
-
-clover = clover_input()
+a = str(raw_input('NOTE: USBCreate does not install Clover or Opencore.\nYou must do this by yourself using any hackintosh guide\n\nPlease hit ENTER to continue: '))
 modpost(3)
-if clover == 0:
-    
-    try:
-        print('Going to run gibMacOS.\n Please choose the version of macOS you want.\nNOTE: You may change your catalog to get betas or other specific builds.\nNOTE 2: Please also ensure that you have picked and downloaded only 1 version of macOS. You may remove "macOS Downloads" and *.dmg/*.hfs to do this.')
-        print('Hit ENTER to continue\n')
-        tmp_var = raw_input('')
-        modpost(999) # Use 999 to avoid conflict and complex rename
-        if(six.PY2):
-            call([
-                'python2',
-                'gibMacOS.command',
-                '-r'])
-        else:
-            # User is using python3
-            call([
-                'python3',
-                'gibMacOS.command',
-                '-r'])
-    except:
-        print('gibMacOS failed to execute. Please share support code FIRESTAR')
-        sys.exit(-1)
-
-    folder_name = "'macOS Downloads'/*/*/*"
+try:
+    print('Going to run gibMacOS.\nPlease choose the version of macOS you want.\nNOTE: You may change your catalog to get betas or other specific builds.\nNOTE 2: Please also ensure that you have picked and downloaded only 1 version of macOS. You may remove "macOS Downloads" and *.dmg/*.hfs to do this.')
+    print('Hit ENTER to continue\n')
+    tmp_var = raw_input('')
+    modpost(999) # Use 999 to avoid conflict and complex rename
+    if(six.PY2):
+        call([
+            'python2',
+            'gibMacOS.command',
+            '-r'])
+    else:
+        # User is using python3
+        call([
+            'python3',
+            'gibMacOS.command',
+            '-r'])
+except:
+    print('gibMacOS failed to execute. Please share support code FIRESTAR')
+    sys.exit(-1)
+folder_name = "'macOS Downloads'/*/*/*"
 modpost(4)
-if clover == 1:
-    print('Ignore all mv errors...')
-
 try:
     call([
         'bash',
@@ -253,29 +220,8 @@ except:
     print('Failed to copy pkg file. Please share support code DARKSTALKER')
     sys.exit(-1)
 modpost(5)
-
-try:
-    i = 1
-    marked = 0
-    while i < 200 and marked == 0:
-        print('Reading the clover download list')
-        clover_url = linecache.getline('clover_dl.list', i)
-        clover_url = clover_url.rstrip('\n')
-        contains = clover_url.__contains__('lzma')
-        if contains == True:
-            marked = 1
-        else:
-            i += 1
-        clover_url = linecache.getline('clover_dl.list', i)
-        clover_url = clover_url.rstrip('\n')
-    print('Got clover download URL as: ', clover_url)
-except:
-    print('An unexpected error has occurred. Please share support code RAVENPAW')
-    sys.exit(-1)
-
 print('Waiting for 3 seconds')
 sleep(3)
-modpost(6)
 if(p_id == 3):
     call([
         'lsblk',
@@ -290,92 +236,65 @@ if(p_id == 2):
         'lsblk'])
 disk = str(raw_input('Please type in name of disk (ex: sdX, diskX, rdiskX etc.): '))
 disk = '/dev/' + disk
-modpost(7)
+modpost(6)
 magic_num = str(raw_input('Please enter magic number now. This number is what sits between the disk and partition number.\nFor example in /dev/disk1sX, the magic number is s and in /dev/sdaX, the magic number is '' (just hit enter)\nIf you do not know this, enter lsblk or diskutil list to find out. Hit ENTER for /dev/sdXY cases where there is no magic number (or letter)\n'))
-if clover == 0:
-    confirm_str = 'WARNING: This will delete all data on ' + disk + '.\nIf you want to continue, wait for 3 seconds. Otherwise hit Ctrl-C\n'
-    print(confirm_str)
-    sleep(3)
-    call([
-        'sgdisk',
-        '--zap-all',
-        disk])
-    call([
-        pprobe])
-    call([
-        'sgdisk',
-        '-n1:1M:+1G', # Large size of greater than 1G is needed for FreeBSD's stupid newfs_msdos unless we use FAT16. Otherwise we reach an error over clusters
-        '-t1:0700',
-        disk])
-    call([
-        'sgdisk',
-        '-n2:0:0',
-        '-t2:af00',
-        disk])
-    call([
-        pprobe])
-    modpost(8)
-    print('Image extraction in progress...\nType Y when asked if you are not sure.\nIn general, you should start with a clean download of gibMacOSto solve any extraction issues. ')
-    sleep(3)
-    call([
-        '7z',
-        'e',
-        '-txar',
-        '*.pkg',
-        '*.dmg'])
-    call([
-        '7z',
-        'e',
-        '*.dmg',
-        '*/Base*'])
-    call([
-        '7z',
-        'e',
-        '-tdmg',
-        'Base*.dmg',
-        '*.hfs'])
-    modpost(9)
-    outstr = 'of=' + disk + magic_num + '2'
-    print('Image will now be written to device.\nPlease be patient!')
-    sleep(5)
-    call([
-        dd,
-        'if=4.hfs',
-        'bs=1M', # Needed for FreeBSD and MacOS for good write speeds 
-        'status=progress',
-        outstr])
-outstr = disk + magic_num + '1'
-modpost(10)
-print('Installing CLOVER on ', outstr, '\nPlease wait...')
+modpost(7)
+confirm_str = 'WARNING: This will delete all data on ' + disk + '.\nIf you want to continue, wait for 3 seconds. Otherwise hit Ctrl-C\n'
+print(confirm_str)
 sleep(3)
+call([
+    'sgdisk',
+    '--zap-all',
+    disk])
+call([pprobe])
+call([
+    'sgdisk',
+    '-n1:1M:+1G', # Large size of greater than 1G is needed for FreeBSD's stupid newfs_msdos unless we use FAT16. Otherwise we reach an error over clusters
+    '-t1:0700',
+    disk])
+call([
+    'sgdisk',
+    '-n2:0:0',
+    '-t2:af00',
+    disk])
+call([
+    pprobe])
+modpost(8)
+print('Image extraction in progress...\nType Y when asked if you are not sure.\nIn general, you should start with a clean download of gibMacOSto solve any extraction issues. ')
+sleep(3)
+call([
+    '7z',
+    'e',
+    '-txar',
+    '*.pkg',
+    '*.dmg'])
+call([
+    '7z',
+    'e',
+    '*.dmg',
+    '*/Base*'])
+call([
+    '7z',
+    'e',
+    '-tdmg',
+    'Base*.dmg',
+    '*.hfs'])
+modpost(9)
+outstr = 'of=' + disk + magic_num + '2'
+print('Image will now be written to device.\nPlease be patient!')
+sleep(5)
+call([
+    dd,
+    'if=4.hfs',
+    'bs=1M', # Needed for FreeBSD and MacOS for good write speeds 
+    'status=progress',
+    outstr])
+efi_part = disk + magic_num + '1'
+modpost(10)
+sleep(3)
+print("Formatting EFI on", efi_part, "...")
 call([
     dosfs,
-    outstr])
-call([
-    'rm',
-    '-rf',
-    '*.tar.lzma',
-    '*.iso'])
-call([
-    'wget',
-    clover_url])
-print("Clover extraction might error out. If so, don't panic. Just install it manually by extracting and mounting iso and copying all files to your USB.\nAlso on FreeBSD mount may appear to fail, just ignore this.")
-sleep(3)
-call([
-    'mkdir',
-    'bootdir'])
-call([
-    'mount',
-    outstr,
-    'bootdir'])
-# FreeBSD
-if(p_id == 2):
-    call([
-       'mount_msdosfs',
-       outstr,
-       'bootdir'])
-call([
-    'bash',
-    'USBCreator/CloverExtract.command'])
-time.sleep(3)
+    efi_part])
+bye_bye = str(raw_input("All Done!\n\nHit ENTER to exit: "))
 modpost(11)
