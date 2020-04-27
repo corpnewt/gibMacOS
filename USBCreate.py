@@ -235,18 +235,20 @@ if(p_id == 2):
     call([
         'lsblk'])
 disk = str(raw_input('Please type in name of disk (ex: sdX, diskX, rdiskX etc.): '))
-if(disk.__contains__("/dev/")):
+if(disk.__contains__('/dev/')):
     pass
 else:
     disk = '/dev/' + disk
 modpost(6)
 #TODO: Add a way for modules to add more magic num tests
-if(disk.__contains__("/dev/sd")):
-    magic_num = ""
-elif(disk.__contains__("/dev/nvme")):
-    magic_num = "p"
-elif(disk.__contains__("/dev/disk")):
-    magic_num = "s"
+if(disk.__contains__('/dev/sd')):
+    magic_num = ''
+elif(disk.__contains__('/dev/nvme')):
+    magic_num = 'p'
+elif(disk.__contains__('/dev/disk')):
+    magic_num = 's'
+elif(disk.__contains__('/dev/rdisk')):
+    magic_num = 's'
 else:
     magic_num = str(raw_input('Please enter magic number now. This number is what sits between the disk and partition number.\nFor example in /dev/disk1sX, the magic number is s and in /dev/sdaX, the magic number is '' (just hit enter)\nIf you do not know this, enter lsblk or diskutil list to find out. Hit ENTER for /dev/sdXY cases where there is no magic number (or letter)\n'))
 modpost(7)
