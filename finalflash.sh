@@ -52,8 +52,24 @@ if [ "${package_manager}" = "pacman -S --noconfirm" ]; then
     ${package_manager} ${package}
     
 else
-    echo -e "${RED}Your distro is not supported!${NOCOLOR}"
+    echo -e "${YELLOW}Warning: Your distro is not supported!${NOCOLOR}"
+    echo -e "You must install the following tools: wget, curl and p7zip"
+    while true
+    do
+    read -r -p "Want to continue at risk? (y/n) " input
+    case $input in
+        [yY])
+    break
+    ;;
+        [nN])
     exit 1
+    ;;
+     *)
+    echo "Invalid input..."
+    ;;
+    esac
+    done
+    
 fi
 
 # Simple menu to select the Downloaded version of macOS only usefull if you download
