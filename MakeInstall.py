@@ -18,8 +18,9 @@ class WinUSB:
         self.r = run.Run()
         self.scripts = "Scripts"
         self.s_path  = os.path.join(os.path.dirname(os.path.realpath(__file__)), self.scripts)
-        self.dd_url  = "http://www.chrysocome.net/downloads/ddrelease64.exe"
-        self.dd_name = os.path.basename(self.dd_url)
+        # self.dd_url  = "http://www.chrysocome.net/downloads/ddrelease64.exe"
+        self.dd_url  = "https://github.com/corpnewt/gibMacOS/files/4573241/ddrelease64.exe.zip" # Rehost due to download issues
+        self.dd_name = ".".join(os.path.basename(self.dd_url).split(".")[:-1]) # Get the name without the last extension
         self.z_json = "https://sourceforge.net/projects/sevenzip/best_release.json"
         self.z_url2 = "https://www.7-zip.org/a/7z1806-x64.msi"
         self.z_url  = "https://www.7-zip.org/a/7z[[vers]]-x64.msi"
@@ -103,8 +104,26 @@ class WinUSB:
             # Got it
             return True
         print("Couldn't locate {} - downloading...".format(self.dd_name))
+        temp = tempfile.mkdtemp()
+        z_file = os.path.basename(self.dd_url)
         # Now we need to download
-        self.dl.stream_to_file(self.dd_url, os.path.join(self.s_path, self.dd_name))
+        self.dl.stream_to_file(self.dd_url, os.path.join(temp,z_file))
+        print(" - Extracting...")
+        # Extract with built-in tools \o/
+        cwd = os.getcwd()
+        os.chdir(temp)
+        with zipfile.ZipFile(os.path.join(temp,z_file)) as z:
+            z.extractall(temp)
+        for x in os.listdir(temp):
+            if self.dd_name.lower() == x.lower():
+                # Found it
+                print(" - Found {}".format(x))
+                print("   - Copying to {} directory...".format(self.scripts))
+                shutil.copy(os.path.join(temp,x), os.path.join(self.s_path,x))
+        # Return to prior cwd
+        os.chdir(cwd)
+        # Remove the temp folder
+        shutil.rmtree(temp,ignore_errors=True)
         print("")
         return os.path.exists(os.path.join(self.s_path, self.dd_name))
 
