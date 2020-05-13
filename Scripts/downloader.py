@@ -90,7 +90,7 @@ class Downloader:
         response = self.open_url(url, headers)
         if not response:
             return None
-        CHUNK = 16 * 1024
+        CHUNK = 1024 * 1024
         bytes_so_far = 0
         try:
             total_size = int(response.headers['Content-Length'])
@@ -111,7 +111,7 @@ class Downloader:
         response = self.open_url(url, headers)
         if not response:
             return None
-        CHUNK = 16 * 1024
+        CHUNK = 1024 * 1024
         bytes_so_far = 0
         try:
             total_size = int(response.headers['Content-Length'])
@@ -132,7 +132,7 @@ class Downloader:
         response = self.open_url(url, headers)
         if not response:
             return None
-        CHUNK = 16 * 1024
+        CHUNK = 1024 * 1024
         bytes_so_far = 0
         try:
             total_size = int(response.headers['Content-Length'])
