@@ -31,7 +31,7 @@ class WinUSB:
         self.dids_url = "https://api.github.com/repos/dids/clover-builder/releases"
         self.oc_url = "https://api.github.com/repos/acidanthera/OpenCorePkg/releases"
         self.oc_boot = "boot"
-        self.oc_boot0 = "boot0af"
+        self.oc_boot0 = "boot0"
         self.oc_boot1 = "boot1f32"
         self.oc_boot_url = "https://github.com/acidanthera/DuetPkg/raw/master/BootLoader/bin/"
         self.diskpart = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Windows", "System32", "diskpart.exe")
