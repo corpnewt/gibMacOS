@@ -786,15 +786,14 @@ class WinUSB:
         print("")
         print("Q. Quit")
         print("")
-        print("Usage: [drive number][option (only one allowed)] r[Clover revision (optional)]\n  (eg. 1C r5092)")
-        print("  Options are as follows with precedence C > E > U > G:")
-        print("    C = Only install Clover to the drive's first partition.")
+        print("Usage: [drive number][option (only one allowed)] r[Clover revision (optional)]\n  (eg. 1B r5092)")
+        print("  Options are as follows with precedence B > E > U > G:")
+        print("    B = Only install the boot manager to the drive's first partition.")
         print("    O = Use OpenCore instead of Clover.")
-        print("    I = Only install OpenCore to the drive's first partition.")
         print("    E = Sets the type of the drive's first partition to EFI.")
         print("    U = Similar to E, but sets the type to Basic Data (useful for editing).")
         print("    G = Format as GPT (default is MBR).")
-        print("    D = Used without a drive number, toggles showing all disks.")
+        print("    D = Used without a drive number, toggles showing all disks (currently {}).".format("ENABLED" if self.show_all_disks else "DISABLED"))
         print("")
         menu = self.u.grab("Please select a disk or press [enter] with no options to refresh:  ")
         if not len(menu):
@@ -806,13 +805,10 @@ class WinUSB:
             self.show_all_disks ^= True
             self.main()
             return
-        only_clover = use_oc = set_efi = unset_efi = use_gpt = False
-        if "c" in menu.lower():
-            only_clover = True
-            menu = menu.lower().replace("c","")
-        if "i" in menu.lower():
-            only_clover = use_oc = True
-            menu = menu.lower().replace("i","")
+        only_boot = use_oc = set_efi = unset_efi = use_gpt = False
+        if "b" in menu.lower():
+            only_boot = True
+            menu = menu.lower().replace("b","")
         if "o" in menu.lower():
             use_oc = True
             menu = menu.lower().replace("o","")
@@ -844,7 +840,7 @@ class WinUSB:
             self.main()
             return
         # Got a disk!
-        if only_clover:
+        if only_boot:
             if use_oc: self.install_oc(selected_disk)
             else: self.install_clover(selected_disk, clover_version)
         elif set_efi:
