@@ -328,7 +328,7 @@ class gibMacOS:
             print("{}. {}".format(count, x))
         print("")
         print("M. Main Menu")
-        print("Q. Quit")
+        print("Q. Quit (or return to USBCreate)")
         print("")
         menu = self.u.grab("Please select an option:  ")
         if not len(menu):
@@ -357,7 +357,7 @@ class gibMacOS:
         print("Currently set to 10.{}".format(self.current_macos))
         print("")
         print("M. Main Menu")
-        print("Q. Quit")
+        print("Q. Quit (or return to USBCreate)")
         print("")
         menu = self.u.grab("Please type the max macOS version for the catalog url (10.xx format):  ")
         if not len(menu):
@@ -416,7 +416,7 @@ class gibMacOS:
             print("L. Clear SoftwareUpdate Catalog")
         print("R. Toggle Recovery-Only (Currently {})".format("On" if self.find_recovery else "Off"))
         print("U. Show Catalog URL")
-        print("Q. Quit")
+        print("Q. Quit (or return to USBCreate)")
         self.resize(w, (num*2)+pad)
         if os.name=="nt":
             # Formatting differences..

@@ -3,6 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Ignore temporary files
+*.list
+*.dmg
+*.chunklist
+*.hfs
+
 # Ignore hidden files
 .*
 
