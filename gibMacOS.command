@@ -140,7 +140,8 @@ class gibMacOS:
         mac_prods = []
         for p in plist_dict.get("Products", {}):
             if not self.find_recovery:
-                if plist_dict.get("Products",{}).get(p,{}).get("ExtendedMetaInfo",{}).get("InstallAssistantPackageIdentifiers",{}).get("OSInstall",{}) == "com.apple.mpkg.OSInstall":
+                val = plist_dict.get("Products",{}).get(p,{}).get("ExtendedMetaInfo",{}).get("InstallAssistantPackageIdentifiers",{})
+                if val.get("OSInstall",{}) == "com.apple.mpkg.OSInstall" or val.get("SharedSupport","").startswith("com.apple.pkg.InstallAssistant"):
                     mac_prods.append(p)
             else:
                 # Find out if we have any of the recovery_suffixes
