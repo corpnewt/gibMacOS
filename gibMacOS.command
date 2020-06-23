@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from Scripts import *
-import os, datetime, shutil, time, sys, argparse
+import os, datetime, shutil, time, sys, argparse, re
 
 class gibMacOS:
     def __init__(self):
@@ -140,7 +140,8 @@ class gibMacOS:
         mac_prods = []
         for p in plist_dict.get("Products", {}):
             if not self.find_recovery:
-                if plist_dict.get("Products",{}).get(p,{}).get("ExtendedMetaInfo",{}).get("InstallAssistantPackageIdentifiers",{}).get("OSInstall",{}) == "com.apple.mpkg.OSInstall":
+                val = plist_dict.get("Products",{}).get(p,{}).get("ExtendedMetaInfo",{}).get("InstallAssistantPackageIdentifiers",{})
+                if val.get("OSInstall",{}) == "com.apple.mpkg.OSInstall" or val.get("SharedSupport","").startswith("com.apple.pkg.InstallAssistant"):
                     mac_prods.append(p)
             else:
                 # Find out if we have any of the recovery_suffixes
@@ -149,7 +150,7 @@ class gibMacOS:
         return mac_prods
 
     def get_build_version(self, dist_dict):
-        build = version = "Unknown"
+        build = version = name = "Unknown"
         try:
             dist_url = dist_dict.get("English","") if dist_dict.get("English",None) else dist_dict.get("en","")
             dist_file = self.d.get_bytes(dist_url, False).decode("utf-8")
@@ -166,7 +167,11 @@ class gibMacOS:
             version = dist_file.split("<key>{}</key>".format(vers_search))[1].split("<string>")[1].split("</string>")[0]
         except:
             pass
-        return (build,version)
+        try:
+            name = re.search(r"<title>(.+?)</title>",dist_file).group(1)
+        except:
+            pass
+        return (build,version,name)
 
     def get_dict_for_prods(self, prods, plist_dict = None):
         if plist_dict==self.catalog_data==None:
@@ -208,7 +213,8 @@ class gibMacOS:
                 # Add them all!
                 prodd["packages"] = plist_dict.get("Products",{}).get(prod,{}).get("Packages",[])
             # Attempt to get the build/version info from the dist
-            b,v = self.get_build_version(plist_dict.get("Products",{}).get(prod,{}).get("Distributions",{}))
+            b,v,n = self.get_build_version(plist_dict.get("Products",{}).get(prod,{}).get("Distributions",{}))
+            prodd["title"] = smd.get("localization",{}).get("English",{}).get("title",n)
             prodd["build"] = b
             if not v.lower() == "unknown":
                 prodd["version"] = v
