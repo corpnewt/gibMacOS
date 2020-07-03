@@ -2,7 +2,7 @@
 setlocal enableDelayedExpansion
 
 REM Setup initial vars
-set "script_name=%~n0.command"
+set "script_name="
 set "thisDir=%~dp0"
 set /a tried=0
 set "toask=yes"
@@ -26,10 +26,18 @@ goto checkscript
 
 :checkscript
 REM Check for our script first
+set "looking_for=!script_name!"
+if "!script_name!" == "" (
+    set "looking_for=%~n0.py or %~n0.command"
+    set "script_name=%~n0.py"
+    if not exist "!thisDir!\!script_name!" (
+        set "script_name=%~n0.command"
+    )
+)
 if not exist "!thisDir!\!script_name!" (
-    echo Could not find !script_name!.
+    echo Could not find !looking_for!.
     echo Please make sure to run this script from the same directory
-    echo as !script_name!.
+    echo as !looking_for!.
     echo.
     echo Press [enter] to quit.
     pause > nul
@@ -47,11 +55,11 @@ REM Strip double semi-colons
 call :undouble "ComSpec" ";"
 set "testpath=%ComSpec:;=!LF!%"
 REM Let's walk each path and test if cmd.exe, reg.exe, and where.exe exist there
-set "found=0"
+set /a found=0
 for /f %%i in ("!testpath!") do (
     REM Only continue if we haven't found it yet
     if NOT "%%i" == "" (
-        if "!found!" == "0" (
+        if !found! lss 1 (
             set "temppath=%%i"
             REM Remove "cmd.exe" from the end if it exists
             if /i "!temppath:~-7!" == "cmd.exe" (
@@ -65,7 +73,7 @@ for /f %%i in ("!testpath!") do (
             if EXIST "!temppath!cmd.exe" (
                 if EXIST "!temppath!reg.exe" (
                     if EXIST "!temppath!where.exe" (
-                        set "found=1"
+                        set /a found=1
                         set "ComSpec=!temppath!cmd.exe"
                     )
                 )
