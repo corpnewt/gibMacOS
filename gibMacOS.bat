@@ -18,6 +18,10 @@ REM   FALSE = Use py2
 REM   FORCE = Use py3
 set "use_py3=TRUE"
 
+REM Get the system32 (or equivalent) path
+call :setcomspec
+set "syspath=%ComSpec:cmd.exe=%"
+
 goto checkscript
 
 :checkscript
@@ -33,11 +37,49 @@ if not exist "!thisDir!\!script_name!" (
 )
 goto checkpy
 
+:setcomspec
+REM Helper method to return the "proper" path to cmd.exe, reg.exe, and where.exe by walking the ComSpec var
+REM Prep the LF variable to use the "line feed" approach - requires 2 newlines after it to function
+set LF=^
+
+
+REM Strip double semi-colons
+call :undouble "ComSpec" ";"
+set "testpath=%ComSpec:;=!LF!%"
+REM Let's walk each path and test if cmd.exe, reg.exe, and where.exe exist there
+set "found=0"
+for /f %%i in ("!testpath!") do (
+    REM Only continue if we haven't found it yet
+    if NOT "%%i" == "" (
+        if "!found!" == "0" (
+            set "temppath=%%i"
+            REM Remove "cmd.exe" from the end if it exists
+            if /i "!temppath:~-7!" == "cmd.exe" (
+                set "temppath=!temppath:~0,-7!"
+            )
+            REM Pad the end with a backslash if needed
+            if NOT "!temppath:~-1!" == "\" (
+                set "temppath=!temppath!\"
+            )
+            REM Let's see if cmd, reg, and where exist there - and set it if so
+            if EXIST "!temppath!cmd.exe" (
+                if EXIST "!temppath!reg.exe" (
+                    if EXIST "!temppath!where.exe" (
+                        set "found=1"
+                        set "ComSpec=!temppath!cmd.exe"
+                    )
+                )
+            )
+        )
+    )
+)
+goto :EOF
+
 :updatepath
 set "spath="
 set "upath="
-for /f "tokens=2* delims= " %%i in ('reg.exe query "HKCU\Environment" /v "Path" 2^> nul') do ( if not "%%j" == "" set "upath=%%j" )
-for /f "tokens=2* delims= " %%i in ('reg.exe query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "Path" 2^> nul') do ( if not "%%j" == "" set "spath=%%j" )
+for /f "USEBACKQ tokens=2* delims= " %%i in (`!syspath!reg.exe query "HKCU\Environment" /v "Path" 2^> nul`) do ( if not "%%j" == "" set "upath=%%j" )
+for /f "USEBACKQ tokens=2* delims= " %%i in (`!syspath!reg.exe query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "Path" 2^> nul`) do ( if not "%%j" == "" set "spath=%%j" )
 if not "%spath%" == "" (
     REM We got something in the system path
     set "PATH=%spath%"
@@ -65,9 +107,9 @@ goto :EOF
 
 :checkpy
 call :updatepath
-REM Get the system32 (or equivalent) path
-set syspath=%ComSpec:cmd.exe=%
-for /f "tokens=*" %%x in ('!syspath!where python') do ( call :checkpyversion "%%x" "py2v" "py2path" "py3v" "py3path" )
+for /f "USEBACKQ tokens=*" %%x in (`!syspath!where.exe python 2^> nul`) do ( call :checkpyversion "%%x" "py2v" "py2path" "py3v" "py3path" )
+for /f "USEBACKQ tokens=*" %%x in (`!syspath!where.exe python3 2^> nul`) do ( call :checkpyversion "%%x" "py2v" "py2path" "py3v" "py3path" )
+for /f "USEBACKQ tokens=*" %%x in (`!syspath!where.exe py 2^> nul`) do ( call :checkpyversion "%%x" "py2v" "py2path" "py3v" "py3path" )
 set "targetpy=3"
 if /i "!use_py3!" == "FALSE" (
     set "targetpy=2"
