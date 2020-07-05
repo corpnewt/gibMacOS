@@ -6,6 +6,7 @@ set "script_name="
 set "thisDir=%~dp0"
 set /a tried=0
 set "toask=yes"
+set "pause_on_error=yes"
 set "py2v="
 set "py2path="
 set "py3v="
@@ -309,5 +310,14 @@ if "!args!"=="" (
     "!pypath!" "!thisDir!!script_name!"
 ) else (
     "!pypath!" "!thisDir!!script_name!" %*
+)
+if /i "!pause_on_error!" == "yes" (
+    if not "%ERRORLEVEL%" == "0" (
+        echo.
+        echo Script exited with error code: %ERRORLEVEL%
+        echo.
+        echo Press [enter] to exit...
+        pause > nul
+    )
 )
 goto :EOF
