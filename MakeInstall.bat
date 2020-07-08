@@ -103,7 +103,7 @@ REM Remove double semicolons from the adjusted PATH
 call :undouble "PATH" ";"
 goto :EOF
 
-:undouble <string_name> <character>
+:undouble - string_name character
 REM Helper function to strip doubles of a single character out of a string recursively
 set "string_name=%~1"
 set "character=%~2"
@@ -164,7 +164,7 @@ if "!pypath!" == "" (
 )
 goto runscript
 
-:checkpyversion <path> <py2v> <py2path> <py3v> <py3path>
+:checkpyversion - path py2v py2path py3v py3path
 set "version="&for /f "tokens=2* USEBACKQ delims= " %%a in (`"%~1" -V 2^>^&1`) do (
     REM Ensure we have a version number
     call :isnumber "%%a"
@@ -189,12 +189,12 @@ if "!version:~0,1!" == "2" (
 )
 goto :EOF
 
-:isnumber <check>
+:isnumber - check_value
 set "var="&for /f "delims=0123456789." %%i in ("%~1") do set var=%%i
 if defined var (exit /b 1)
 exit /b 0
 
-:comparepyversion <version1> <version2> <return>
+:comparepyversion - version1 version2 return
 REM Exits with status 0 if equal, 1 if v1 gtr v2, 2 if v1 lss v2
 for /f "tokens=1,2,3 delims=." %%a in ("%~1") do (
     set a1=%%a
