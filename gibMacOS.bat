@@ -118,7 +118,7 @@ goto :EOF
 call :updatepath
 for /f "USEBACKQ tokens=*" %%x in (`!syspath!where.exe python 2^> nul`) do ( call :checkpyversion "%%x" "py2v" "py2path" "py3v" "py3path" )
 for /f "USEBACKQ tokens=*" %%x in (`!syspath!where.exe python3 2^> nul`) do ( call :checkpyversion "%%x" "py2v" "py2path" "py3v" "py3path" )
-for /f "USEBACKQ tokens=*" %%x in (`!syspath!where.exe py 2^> nul`) do ( call :checkpyversion "%%x" "py2v" "py2path" "py3v" "py3path" )
+for /f "USEBACKQ tokens=*" %%x in (`!syspath!where.exe py 2^> nul`) do ( call :checkpylauncher "%%x" "py2v" "py2path" "py3v" "py3path" )
 set "targetpy=3"
 if /i "!use_py3!" == "FALSE" (
     set "targetpy=2"
@@ -163,6 +163,12 @@ if "!pypath!" == "" (
     )
 )
 goto runscript
+
+:checkpylauncher <path> <py2v> <py2path> <py3v> <py3path>
+REM Attempt to check the latest python 2 and 3 versions via the py launcher
+for /f "USEBACKQ tokens=*" %%x in (`%~1 -2 -c "import sys; print(sys.executable)" 2^> nul`) do ( call :checkpyversion "%%x" "%~2" "%~3" "%~4" "%~5" )
+for /f "USEBACKQ tokens=*" %%x in (`%~1 -3 -c "import sys; print(sys.executable)" 2^> nul`) do ( call :checkpyversion "%%x" "%~2" "%~3" "%~4" "%~5" )
+goto :EOF
 
 :checkpyversion <path> <py2v> <py2path> <py3v> <py3path>
 set "version="&for /f "tokens=2* USEBACKQ delims= " %%a in (`"%~1" -V 2^>^&1`) do (
