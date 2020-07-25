@@ -11,6 +11,18 @@ class Downloader:
 
     def __init__(self,**kwargs):
         self.ua = kwargs.get("useragent",{"User-Agent":"Mozilla"})
+
+        # Provide reasonable default logic to workaround macOS CA file handling 
+        cafile = ssl.get_default_verify_paths().openssl_cafile
+        try:
+            # If default OpenSSL CA file does not exist, use that from certifi
+            if not os.path.exists(cafile):
+                import certifi
+                cafile = certifi.where()
+            self.ssl_context = ssl.create_default_context(cafile=cafile)
+        except:
+            # None of the above worked, disable certificate verification for now
+            self.ssl_context = ssl._create_unverified_context()
         return
 
     def _decode(self, value, encoding="utf-8", errors="ignore"):
@@ -24,18 +36,10 @@ class Downloader:
         headers = self.ua if headers == None else headers
         # Wrap up the try/except block so we don't have to do this for each function
         try:
-            response = urlopen(Request(url, headers=headers))
+            response = urlopen(Request(url, headers=headers), context=self.ssl_context)
         except Exception as e:
-            if sys.version_info >= (3, 0) or not (isinstance(e, urllib2.URLError) and "CERTIFICATE_VERIFY_FAILED" in str(e)):
-                # Either py3, or not the right error for this "fix"
-                return None
-            # Py2 and a Cert verify error - let's set the unverified context
-            context = ssl._create_unverified_context()
-            try:
-                response = urlopen(Request(url, headers=headers), context=context)
-            except:
-                # No fixing this - bail
-                return None
+            # No fixing this - bail
+            return None
         return response
 
     def get_size(self, size, suffix=None, use_1024=False, round_to=2, strip_zeroes=False):
