@@ -34,7 +34,7 @@ class WinUSB:
         self.oc_boot0 = "boot0"
         self.oc_boot1 = "boot1f32"
         # self.oc_boot_url = "https://github.com/acidanthera/OpenCorePkg/raw/master/Utilities/LegacyBoot/"
-        self.oc_boot_url = "https://github.com/acidanthera/OpenCorePkg/blob/870017d0e5d53abeaf0347997da912c3e382a04a/Utilities/LegacyBoot/"
+        self.oc_boot_url = "https://github.com/acidanthera/OpenCorePkg/raw/870017d0e5d53abeaf0347997da912c3e382a04a/Utilities/LegacyBoot/"
         self.diskpart = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Windows", "System32", "diskpart.exe")
         # From Tim Sutton's brigadier:  https://github.com/timsutton/brigadier/blob/master/brigadier
         self.z_path = None
