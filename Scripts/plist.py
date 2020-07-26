@@ -11,9 +11,16 @@ if sys.version_info < (3,0):
     from StringIO import StringIO
 
 try:
+    basestring  # Python 2
+    unicode
+except NameError:
+    basestring = str  # Python 3
+    unicode = str
+
+try:
     FMT_XML = plistlib.FMT_XML
     FMT_BINARY = plistlib.FMT_BINARY
-except:
+except AttributeError:
     FMT_XML = "FMT_XML"
     FMT_BINARY = "FMT_BINARY"
 
@@ -22,33 +29,27 @@ except:
 ###            ###
 
 def _check_py3():
-    return True if sys.version_info >= (3, 0) else False
+    return sys.version_info >= (3, 0)
 
 def _is_binary(fp):
-    if isinstance(fp, _get_inst()):
+    if isinstance(fp, basestring):
         return fp.startswith(b"bplist00")
     header = fp.read(32)
     fp.seek(0)
     return header[:8] == b'bplist00'
-
-def _get_inst():
-    if _check_py3():
-        return (str)
-    else:
-        return (str, unicode)
 
 ###                             ###
 # Deprecated Functions - Remapped #
 ###                             ###
 
 def readPlist(pathOrFile):
-    if not isinstance(pathOrFile, _get_inst()):
+    if not isinstance(pathOrFile, basestring):
         return load(pathOrFile)
     with open(pathOrFile, "rb") as f:
         return load(f)
 
 def writePlist(value, pathOrFile):
-    if not isinstance(pathOrFile, _get_inst()):
+    if not isinstance(pathOrFile, basestring):
         return dump(value, pathOrFile, fmt=FMT_XML, sort_keys=True, skipkeys=False)
     with open(pathOrFile, "wb") as f:
         return dump(value, f, fmt=FMT_XML, sort_keys=True, skipkeys=False)
@@ -60,63 +61,69 @@ def writePlist(value, pathOrFile):
 def load(fp, fmt=None, use_builtin_types=None, dict_type=dict):
     if _check_py3():
         use_builtin_types = True if use_builtin_types == None else use_builtin_types
-        return plistlib.load(fp, fmt=fmt, use_builtin_types=use_builtin_types, dict_type=dict_type)
+        # We need to monkey patch this to allow for hex integers - code taken/modified from 
+        # https://github.com/python/cpython/blob/3.8/Lib/plistlib.py
+        if fmt is None:
+            header = fp.read(32)
+            fp.seek(0)
+            for info in plistlib._FORMATS.values():
+                if info['detect'](header):
+                    P = info['parser']
+                    break
+            else:
+                raise plistlib.InvalidFileException()
+        else:
+            P = plistlib._FORMATS[fmt]['parser']
+        p = P(use_builtin_types=use_builtin_types, dict_type=dict_type)
+        if isinstance(p,plistlib._PlistParser):
+            # Monkey patch!
+            def end_integer():
+                d = p.get_data()
+                p.add_object(int(d,16) if d.lower().startswith("0x") else int(d))
+            p.end_integer = end_integer
+        return p.parse(fp)
     elif not _is_binary(fp):
-        # We monkey patch the begin_dict function to allow for other
-        # dict types
+        # Is not binary - assume a string - and try to load
+        # We avoid using readPlistFromString() as that uses
+        # cStringIO and fails when Unicode strings are detected
+        # Don't subclass - keep the parser local
+        from xml.parsers.expat import ParserCreate
+        # Create a new PlistParser object - then we need to set up
+        # the values and parse.
         p = plistlib.PlistParser()
+        # We also need to monkey patch this to allow for other dict_types
         def begin_dict(attrs):
             d = dict_type()
             p.addObject(d)
             p.stack.append(d)
+        def end_integer():
+            d = p.getData()
+            p.addObject(int(d,16) if d.lower().startswith("0x") else int(d))
         p.begin_dict = begin_dict
-        root = p.parse(fp)
-        return root
+        p.end_integer = end_integer
+        parser = ParserCreate()
+        parser.StartElementHandler = p.handleBeginElement
+        parser.EndElementHandler = p.handleEndElement
+        parser.CharacterDataHandler = p.handleData
+        if isinstance(fp, unicode):
+            # Encode unicode -> string; use utf-8 for safety
+            fp = fp.encode("utf-8")
+        if isinstance(fp, basestring):
+            # It's a string - let's wrap it up
+            fp = StringIO(fp)
+        # Parse it
+        parser.ParseFile(fp)
+        return p.root
     else:
         use_builtin_types = False if use_builtin_types == None else use_builtin_types
         p = _BinaryPlistParser(use_builtin_types=use_builtin_types, dict_type=dict_type)
         return p.parse(fp)
 
 def loads(value, fmt=None, use_builtin_types=None, dict_type=dict):
-    if _check_py3():
-        use_builtin_types = True if use_builtin_types == None else use_builtin_types
-        # Requires fp to be a BytesIO wrapper around a bytes object
-        if isinstance(value, _get_inst()):
-            # If it's a string - encode it
-            value = value.encode()
-        # Load it
-        return plistlib.load(BytesIO(value), fmt=fmt, use_builtin_types=use_builtin_types, dict_type=dict_type)
-    else:
-        if _is_binary(value):
-            use_builtin_types = False if use_builtin_types == None else use_builtin_types
-            # Has the proper header to be a binary plist
-            p = _BinaryPlistParser(use_builtin_types=use_builtin_types, dict_type=dict_type)
-            return p.parse(BytesIO(value))
-        else:
-            # Is not binary - assume a string - and try to load
-            # We avoid using readPlistFromString() as that uses
-            # cStringIO and fails when Unicode strings are detected
-            # Don't subclass - keep the parser local
-            from xml.parsers.expat import ParserCreate
-            # Create a new PlistParser object - then we need to set up
-            # the values and parse.
-            p = plistlib.PlistParser()
-            # We also need to monkey patch this to allow for other dict_types
-            def begin_dict(attrs):
-                d = dict_type()
-                p.addObject(d)
-                p.stack.append(d)
-            p.begin_dict = begin_dict
-            parser = ParserCreate()
-            parser.StartElementHandler = p.handleBeginElement
-            parser.EndElementHandler = p.handleEndElement
-            parser.CharacterDataHandler = p.handleData
-            if isinstance(value, unicode):
-                # Encode unicode -> string; use utf-8 for safety
-                value = value.encode("utf-8")
-            # Parse the string
-            parser.Parse(value, 1)
-            return p.root
+    if _check_py3() and isinstance(value, basestring):
+        # If it's a string - encode it
+        value = value.encode()
+    return load(BytesIO(value),fmt=fmt,use_builtin_types=use_builtin_types,dict_type=dict_type)
 
 def dump(value, fp, fmt=FMT_XML, sort_keys=True, skipkeys=False):
     if _check_py3():
@@ -131,7 +138,7 @@ def dump(value, fp, fmt=FMT_XML, sort_keys=True, skipkeys=False):
                     writer.beginElement("dict")
                     items = sorted(d.items()) if sort_keys else d.items()
                     for key, value in items:
-                        if not isinstance(key, (str,unicode)):
+                        if not isinstance(key, basestring):
                             if skipkeys:
                                 continue
                             raise TypeError("keys must be strings")
@@ -267,7 +274,7 @@ class _BinaryPlistParser:
 
         elif tokenH == 0x10:  # int
             result = 0
-            for k in xrange((2 << tokenL) - 1):
+            for k in range((2 << tokenL) - 1):
                 result = (result << 8) + ord(self._fp.read(1))
             # result = int.from_bytes(self._fp.read(1 << tokenL),
             #                        'big', signed=tokenL >= 3)
@@ -435,7 +442,7 @@ class _BinaryPlistWriter (object):
                 items = sorted(items)
 
             for k, v in items:
-                if not isinstance(k, (str,unicode)):
+                if not isinstance(k, basestring):
                     if self._skipkeys:
                         continue
                     raise TypeError("keys must be strings")
@@ -515,7 +522,7 @@ class _BinaryPlistWriter (object):
             self._write_size(0x40, len(value.data))
             self._fp.write(value.data)
 
-        elif isinstance(value, (str,unicode)):
+        elif isinstance(value, basestring):
             try:
                 t = value.encode('ascii')
                 self._write_size(0x50, len(value))
@@ -543,7 +550,7 @@ class _BinaryPlistWriter (object):
                 rootItems = value.items()
 
             for k, v in rootItems:
-                if not isinstance(k, (str,unicode)):
+                if not isinstance(k, basestring):
                     if self._skipkeys:
                         continue
                     raise TypeError("keys must be strings")
