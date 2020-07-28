@@ -10,7 +10,7 @@ else:
 class Downloader:
 
     def __init__(self,**kwargs):
-        self.ua = kwargs.get("useragent",{"User-Agent":"Mozilla"})
+        self.ua = kwargs.get("useragent",{"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36 Edg/84.0.522.44"})
 
         # Provide reasonable default logic to workaround macOS CA file handling 
         cafile = ssl.get_default_verify_paths().openssl_cafile
