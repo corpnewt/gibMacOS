@@ -1,4 +1,5 @@
-import sys, os, time, ssl
+import sys, os, time, ssl, gzip
+from io import BytesIO
 # Python-aware urllib stuff
 if sys.version_info >= (3, 0):
     from urllib.request import urlopen, Request
@@ -130,6 +131,10 @@ class Downloader:
             if not chunk:
                 break
             chunk_so_far += chunk
+        if response.headers.get('Content-Encoding') == "gzip":
+            fileobj = BytesIO(chunk_so_far)
+            file = gzip.GzipFile(fileobj=fileobj)
+            return file.read()
         return chunk_so_far
 
     def stream_to_file(self, url, file, progress = True, headers = None):
