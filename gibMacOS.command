@@ -212,6 +212,10 @@ class gibMacOS:
             else:
                 # Add them all!
                 prodd["packages"] = plist_dict.get("Products",{}).get(prod,{}).get("Packages",[])
+            # Get size
+            prodd["size"] = 0
+            for i in prodd["packages"]: prodd["size"] += i["Size"]
+            prodd["size"] = self.d.get_size(prodd["size"])
             # Attempt to get the build/version info from the dist
             b,v,n = self.get_build_version(plist_dict.get("Products",{}).get(prod,{}).get("Distributions",{}))
             prodd["title"] = smd.get("localization",{}).get("English",{}).get("title",n)
@@ -404,7 +408,7 @@ class gibMacOS:
             var1 = "{}. {} {}".format(num, p["title"], p["version"])
             if p["build"].lower() != "unknown":
                 var1 += " ({})".format(p["build"])
-            var2 = "   - {} - Added {}".format(p["product"], p["date"])
+            var2 = "   - {} - Added {} - {}".format(p["product"], p["date"], p["size"])
             if self.find_recovery and p["installer"]:
                 # Show that it's a full installer
                 var2 += " - FULL Install"
