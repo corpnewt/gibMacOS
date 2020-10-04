@@ -12,6 +12,7 @@ class Downloader:
 
     def __init__(self,**kwargs):
         self.ua = kwargs.get("useragent",{"User-Agent":"Mozilla"})
+        self.chunk = 1048576 # 1024 x 1024 i.e. 1MiB
 
         # Provide reasonable default logic to workaround macOS CA file handling 
         cafile = ssl.get_default_verify_paths().openssl_cafile
@@ -82,81 +83,48 @@ class Downloader:
             percent = float(bytes_so_far) / total_size
             percent = round(percent*100, 2)
             t_s = self.get_size(total_size)
-            try:
-                b_s = self.get_size(bytes_so_far, t_s.split(" ")[1])
-            except:
-                b_s = self.get_size(bytes_so_far)
+            try: b_s = self.get_size(bytes_so_far, t_s.split(" ")[1])
+            except: b_s = self.get_size(bytes_so_far)
             sys.stdout.write("Downloaded {} of {} ({:.2f}%)\r".format(b_s, t_s, percent))
         else:
             b_s = self.get_size(bytes_so_far)
             sys.stdout.write("Downloaded {}\r".format(b_s))
 
-    def get_string(self, url, progress = True, headers = None):
-        response = self.open_url(url, headers)
-        if not response:
-            return None
-        CHUNK = 1024 * 1024
-        bytes_so_far = 0
-        try:
-            total_size = int(response.headers['Content-Length'])
-        except:
-            total_size = -1
-        chunk_so_far = "".encode("utf-8")
-        while True:
-            chunk = response.read(CHUNK)
-            bytes_so_far += len(chunk)
-            if progress:
-                self._progress_hook(response, bytes_so_far, total_size)
-            if not chunk:
-                break
-            chunk_so_far += chunk
-        return self._decode(chunk_so_far)
+    def get_string(self, url, progress = True, headers = None, expand_gzip = True):
+        response = self.get_bytes(url,progress,headers,expand_gzip)
+        if response == None: return None
+        return self._decode(response)
 
-    def get_bytes(self, url, progress = True, headers = None):
+    def get_bytes(self, url, progress = True, headers = None, expand_gzip = True):
         response = self.open_url(url, headers)
-        if not response:
-            return None
-        CHUNK = 1024 * 1024
+        if response == None: return None
         bytes_so_far = 0
-        try:
-            total_size = int(response.headers['Content-Length'])
-        except:
-            total_size = -1
-        chunk_so_far = "".encode("utf-8")
+        try: total_size = int(response.headers['Content-Length'])
+        except: total_size = -1
+        chunk_so_far = b""
         while True:
-            chunk = response.read(CHUNK)
+            chunk = response.read(self.chunk)
             bytes_so_far += len(chunk)
-            if progress:
-                self._progress_hook(response, bytes_so_far, total_size)
-            if not chunk:
-                break
+            if progress: self._progress_hook(response, bytes_so_far, total_size)
+            if not chunk: break
             chunk_so_far += chunk
-        if response.headers.get('Content-Encoding') == "gzip":
+        if expand_gzip and response.headers.get("Content-Encoding","unknown").lower() == "gzip":
             fileobj = BytesIO(chunk_so_far)
-            file = gzip.GzipFile(fileobj=fileobj)
-            return file.read()
+            gfile   = gzip.GzipFile(fileobj=fileobj)
+            return gfile.read()
         return chunk_so_far
 
-    def stream_to_file(self, url, file, progress = True, headers = None):
+    def stream_to_file(self, url, file_path, progress = True, headers = None):
         response = self.open_url(url, headers)
-        if not response:
-            return None
-        CHUNK = 1024 * 1024
+        if response == None: return None
         bytes_so_far = 0
-        try:
-            total_size = int(response.headers['Content-Length'])
-        except:
-            total_size = -1
-        with open(file, 'wb') as f:
+        try: total_size = int(response.headers['Content-Length'])
+        except: total_size = -1
+        with open(file_path, 'wb') as f:
             while True:
-                chunk = response.read(CHUNK)
+                chunk = response.read(self.chunk)
                 bytes_so_far += len(chunk)
-                if progress:
-                    self._progress_hook(response, bytes_so_far, total_size)
-                if not chunk:
-                    break
+                if progress: self._progress_hook(response, bytes_so_far, total_size)
+                if not chunk: break
                 f.write(chunk)
-        if os.path.exists(file):
-            return file
-        else:
-            return None
+        return file_path if os.path.exists(file_path) else None
