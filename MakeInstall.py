@@ -482,7 +482,7 @@ class WinUSB:
             print(" - {}".format(x))
             self.dl.stream_to_file(self.oc_boot_url + x, os.path.join(temp,x),False)
         # At this point, we should have a boot0xx file and an EFI folder in the temp dir
-        # We need to udpate the disk list though - to reflect the current file system on part 1
+        # We need to update the disk list though - to reflect the current file system on part 1
         # of our current disk
         self.d.update() # assumes our disk number stays the same
         # Some users are having issues with the "partitions" key not populating - possibly a 3rd party disk management soft?
@@ -649,7 +649,7 @@ class WinUSB:
             self.u.grab("Press [enter] to return...")
             return
         # At this point, we should have a boot0xx file and an EFI folder in the temp dir
-        # We need to udpate the disk list though - to reflect the current file system on part 1
+        # We need to update the disk list though - to reflect the current file system on part 1
         # of our current disk
         self.d.update() # assumes our disk number stays the same
         # Some users are having issues with the "partitions" key not populating - possibly a 3rd party disk management soft?
