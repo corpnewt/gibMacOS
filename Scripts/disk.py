@@ -6,6 +6,11 @@ if sys.version_info < (3,0):
     # has issues with Unicode strings
     from StringIO import StringIO
 
+try:
+    unicode
+except NameError:
+    unicode = str
+
 class Disk:
 
     def __init__(self):
