@@ -510,7 +510,7 @@ class WinUSB:
             print(" - EFI exists - removing...")
             shutil.rmtree("{}/EFI".format(part),ignore_errors=True)
             time.sleep(1) # Added because windows is dumb
-        shutil.copytree(os.path.join(temp,"EFI"), "{}/EFI".format(part))
+        shutil.copytree(os.path.join(temp,"X64","EFI"), "{}/EFI".format(part))
         # Copy boot over to the root of the EFI volume
         print("Copying {} to {}/boot...".format(self.oc_boot,part))
         shutil.copy(os.path.join(temp,self.oc_boot),"{}/boot".format(part))
