@@ -140,10 +140,10 @@ class Utils:
         default = kwargs.get("default", None)
         # If we don't have a timeout - then skip the timed sections
         if timeout <= 0:
-            if sys.version_info >= (3, 0):
-                return input(prompt)
-            else:
+            try:
                 return str(raw_input(prompt))
+            except NameError:
+                return input(prompt)
         # Write our prompt
         sys.stdout.write(prompt)
         sys.stdout.flush()
