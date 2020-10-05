@@ -228,7 +228,7 @@ class gibMacOS:
         return prod_list
 
     def download_prod(self, prod, dmg = False):
-        # Takes a dictonary of details and downloads it
+        # Takes a dictionary of details and downloads it
         self.resize()
         name = "{} - {} {}".format(prod["product"], prod["version"], prod["title"]).replace(":","").strip()
         dl_list = []
@@ -512,7 +512,7 @@ class gibMacOS:
         for p in sorted(self.mac_prods, key=lambda x:x['version'], reverse=True):
             pt = p["title"].lower()
             pv = p["version"].lower()
-            # Need to compare verisons - n = name, v = version
+            # Need to compare versions - n = name, v = version
             # p["version"] and p["title"] may contain either the version
             # or name - so check both
             # We want to make sure, if we match the name to the title, that we only match
