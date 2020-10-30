@@ -33,7 +33,8 @@ class WinUSB:
         self.oc_boot = "boot"
         self.oc_boot0 = "boot0"
         self.oc_boot1 = "boot1f32"
-        self.oc_boot_url = "https://github.com/acidanthera/OpenCorePkg/raw/master/Utilities/LegacyBoot/"
+        # self.oc_boot_url = "https://github.com/acidanthera/OpenCorePkg/raw/master/Utilities/LegacyBoot/"
+        self.oc_boot_url = "https://github.com/acidanthera/OpenCorePkg/raw/870017d0e5d53abeaf0347997da912c3e382a04a/Utilities/LegacyBoot/"
         self.diskpart = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Windows", "System32", "diskpart.exe")
         # From Tim Sutton's brigadier:  https://github.com/timsutton/brigadier/blob/master/brigadier
         self.z_path = None
@@ -509,7 +510,7 @@ class WinUSB:
             print(" - EFI exists - removing...")
             shutil.rmtree("{}/EFI".format(part),ignore_errors=True)
             time.sleep(1) # Added because windows is dumb
-        shutil.copytree(os.path.join(temp,"EFI"), "{}/EFI".format(part))
+        shutil.copytree(os.path.join(temp,"X64","EFI"), "{}/EFI".format(part))
         # Copy boot over to the root of the EFI volume
         print("Copying {} to {}/boot...".format(self.oc_boot,part))
         shutil.copy(os.path.join(temp,self.oc_boot),"{}/boot".format(part))
