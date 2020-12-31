@@ -295,7 +295,7 @@ class gibMacOS:
                 done.append({"name":os.path.basename(x), "status":False})
         succeeded = [x for x in done if x["status"]]
         failed    = [x for x in done if not x["status"]]
-        self.u.head("Downloaded {} of {}".format(len(succeeded), len(dl_list)))
+        self.u.head("Downloaded {} of {} /n".format(len(succeeded), len(dl_list)))
         print("")
         print("Succeeded:")
         if len(succeeded):
