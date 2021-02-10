@@ -21,7 +21,7 @@ https://support.apple.com/en-us/HT201372
 
 
 ##Updates
-This script can now also build Internet Recovery USB installers from Windows using [dd](http://www.chrysocome.net/dd) and [7zip](https://www.7-zip.org/download.html).
+- This script can now also build Internet Recovery USB installers from Windows using [dd](http://www.chrysocome.net/dd) and [7zip](https://www.7-zip.org/download.html).
 
 
 
