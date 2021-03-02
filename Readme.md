@@ -11,6 +11,15 @@ Thanks to:
 
 ## Checksum (SHA256)
 
+### macOS 11.2.2 (20D80) Big Sur
+
+- BuildManifest.plist `a56ad1dc876c0c43c077feeeabdb266b68599b4a3f43d66478af9413ee59e18e`
+- Info.plist `e5d5e2f5af1b6c4de319c6d7db533c1de69d57c681bcaa0d763d4fe82479eddb`
+- InstallAssistant.pkg `66e93f82c90c4333bc2ca7c0ffbbe536834a162d2670b9d3cd6cf45614ba1c0c`
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
+- MajorOSInfo.pkg `ca346c473c0c14c50ad15533b9ac5680ea9b1e06e8c587c8f3f960827133b6d7`
+- UpdateBrain.zip `3797e3057b40245275f18826bdfac1720ec465351f5a707c5d84890402dd3d61`
+
 ### macOS 10.15.7 (19H15) Catalina
 
 - AppleDiagnostics.chunklist `470373d2525a694c09dff216aaf54babd85d7aac4434699fc1274ef117aa572a`
