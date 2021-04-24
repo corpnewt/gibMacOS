@@ -33,7 +33,7 @@ class Utils:
         if self.check_admin():
             return
         if os.name == "nt":
-            ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, file, None, 1)
+            ctypes.windll.shell32.ShellExecuteW(None, "runas", '"{}"'.format(sys.executable), '"{}"'.format(file), None, 1)
         else:
             try:
                 p = subprocess.Popen(["which", "sudo"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
