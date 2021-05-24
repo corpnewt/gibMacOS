@@ -11,6 +11,15 @@ Thanks to:
 
 ## Checksum (SHA256)
 
+### macOS Big Sur 11.4 (20F71)
+
+- BuildManifest.plist `b794b0b216a21e48c7f97410e354c7a739e8bd6ca1c78a2860685b7b73f3d977`
+- Info.plist `68f5a0d1d01f6b48739209cee614f38665bac4cda686f89f2394dd04fd214dbd`
+- InstallAssistant.pkg `3374333d98ff267f3520ef1efcdae978ec87043be0f70b790b4b6cd0465b98d7`
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
+- MajorOSInfo.pkg `0cedf465aad21b1d64f81adf6745e83eed9cd9b33ff2015b29387092ab8fb7d3`
+- UpdateBrain.zip `6a84b5b6bd5367d0accf8906d36f55d95e5144c5b2aa24f62b228d37f880e08a`
+
 ### macOS Big Sur 11.3.1 (20E241)
 
 - BuildManifest.plist `5f9700a8fe9384b0e188b8353d42ba0a02af1ad488a8620ad93efe8625b3df11`
