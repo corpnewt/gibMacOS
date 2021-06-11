@@ -417,7 +417,7 @@ class gibMacOS:
             print(var1)
             print(var2)
         print("")
-        print("M. Change Max-OS Version (Currently 10.{})".format(self.current_macos))
+        print("M. Change Mac-OS Version (Currently 10.{})".format(self.current_macos))
         print("C. Change Catalog (Currently {})".format(self.current_catalog))
         print("I. Only Print URLs (Currently {})".format(self.print_urls))
         if sys.platform.lower() == "darwin":
