@@ -289,6 +289,7 @@ class gibMacOS:
             print("Downloading {} for {}...".format(os.path.basename(x), name))
             print("")
             try:
+                print("Download URL:\n{}".format(x))
                 self.d.stream_to_file(x, os.path.join(os.getcwd(), self.saves, self.current_catalog, name, os.path.basename(x)))
                 done.append({"name":os.path.basename(x), "status":True})
             except:
