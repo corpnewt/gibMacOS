@@ -655,7 +655,7 @@ class WinUSB:
         # Some users are having issues with the "partitions" key not populating - possibly a 3rd party disk management soft?
         # Possibly a bad USB?
         # We'll see if the key exists - if not, we'll throw an error.
-        if self.d.disks[str(disk["index"])].get("partitions",None) == None:
+        if self.d.disks[str(disk["index"])].get("partitions",None) is None:
             # No partitions found.
             shutil.rmtree(temp,ignore_errors=True)
             print("No partitions located on disk!")
