@@ -177,3 +177,40 @@ Package "InstallAssistant.pkg":
            B0 B1 73 0E CB C7 FF 45 05 14 2C 49 F1 29 5E 6E DA 6B CA ED 7E 2C 
            68 C5 BE 91 B5 A1 10 01 F0 24
 ```
+
+## How to check `*.app` signature
+
+```
+$ codesign -dv --verbose=4 /Applications/Install\ macOS\ Big\ Sur.app
+
+Executable=/Applications/Install macOS Big Sur.app/Contents/MacOS/InstallAssistant_springboard
+Identifier=com.apple.InstallAssistant.macOSBigSur
+Format=app bundle with Mach-O universal (x86_64 arm64)
+CodeDirectory v=20400 size=511 flags=0x2000(library-validation) hashes=9+3 location=embedded
+Platform identifier=12
+VersionPlatform=1
+VersionMin=657664
+VersionSDK=722433
+Hash type=sha256 size=32
+CandidateCDHash sha1=a2c2abdaf496e983cf10f9dd658a44351d8df311
+CandidateCDHashFull sha1=a2c2abdaf496e983cf10f9dd658a44351d8df311
+CandidateCDHash sha256=8709cbb3545cc831757f40ad0301a92918c5d2e2
+CandidateCDHashFull sha256=8709cbb3545cc831757f40ad0301a92918c5d2e25b045a64198a998f685f611c
+Hash choices=sha1,sha256
+CMSDigest=0f06023e4f9cd7c880023e20859b0a261b724f9e52246c93f629ab44cd8f5b25
+CMSDigestType=2
+Executable Segment base=0
+Executable Segment limit=16384
+Executable Segment flags=0x1
+Page size=4096
+CDHash=8709cbb3545cc831757f40ad0301a92918c5d2e2
+Signature size=4523
+Authority=Software Signing
+Authority=Apple Code Signing Certification Authority
+Authority=Apple Root CA
+Signed Time=Oct 19, 2021 at 16:38:18
+Info.plist entries=32
+TeamIdentifier=not set
+Sealed Resources version=2 rules=2 files=0
+Internal requirements count=1 size=88
+```
