@@ -39,6 +39,8 @@ class gibMacOS:
             "high sierra" : "10.13",
             "mojave" : "10.14",
             "catalina" : "10.15"
+            "big sur" : "11.0"
+            "monterey" : "12.0"
         }
         self.current_catalog = "publicrelease"
         self.catalog_data    = None
