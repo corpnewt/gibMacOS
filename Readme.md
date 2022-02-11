@@ -11,6 +11,15 @@ Thanks to:
 
 ## Checksum (SHA256)
 
+### macOS Monterey 12.2.1 (21D62)
+
+- BuildManifest.plist `2b19e0b3051221353954fbcae9025fd507a197a69a8b20b4cd4c68e38641e67a`
+- Info.plist `c8058f075e2a40b1a761503aa56e2b6e4471345490189b88f6bad3f6495af8a2`
+- InstallAssistant.pkg `f9402e572735ef1614b4add2fb19dccc8eb644f9f50b9ab633032fa3907e18e3`
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
+- MajorOSInfo.pkg `393d31310b03f0c24a0f25479bd6fc4e3d494f400199e8ce1ec43a24bfb85569`
+- UpdateBrain.zip `8ef4c88f5163fea94d544e94ed21172bc5464c38548748b1b85224ef30e2f77a`
+
 ### macOS Monterey 12.2 (21D49)
 
 - BuildManifest.plist `d9ab7c726ece58b63110c952d6f44366ecdb5bf1ab3f767528953d6075019bc2`
