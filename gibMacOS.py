@@ -81,7 +81,7 @@ class gibMacOS:
         catalog = kwargs.get("catalog", self.current_catalog).lower()
         catalog = catalog if catalog.lower() in self.catalog_suffix else "publicrelease"
         version = int(kwargs.get("version", self.current_macos))
-        url = "https://swscan.apple.com/content/catalogs/others/index-"
+        url = "https://swscan.apple.com/content/catalogs/others/index-12-10.16-"
         url += "-".join([self.mac_os_names_url[str(x)] if str(x) in self.mac_os_names_url else "10."+str(x) for x in reversed(range(self.min_macos, version+1))])
         url += ".merged-1.sucatalog"
         ver_s = self.mac_os_names_url[str(version)] if str(version) in self.mac_os_names_url else "10."+str(version)
