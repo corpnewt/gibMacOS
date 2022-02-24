@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from Scripts import *
-import os, datetime, shutil, time, sys, argparse, re
+from Scripts import downloader,utils,run,plist
+import os, shutil, time, sys, argparse, re
 
 class gibMacOS:
     def __init__(self):
@@ -17,7 +17,7 @@ class gibMacOS:
             "customer" : "customerseed",
             "developer" : "seed"
         }
-        self.current_macos = 15
+        self.current_macos = 17 # if > 16, assume X-5, else 10.X
         self.min_macos = 5
         self.print_urls = False
         self.mac_os_names_url = {
@@ -38,7 +38,9 @@ class gibMacOS:
             "sierra" : "10.12",
             "high sierra" : "10.13",
             "mojave" : "10.14",
-            "catalina" : "10.15"
+            "catalina" : "10.15",
+            "big sur" : "11",
+            "monterey" : "12"
         }
         self.current_catalog = "publicrelease"
         self.catalog_data    = None
@@ -77,17 +79,39 @@ class gibMacOS:
     def set_catalog(self, catalog):
         self.current_catalog = catalog.lower() if catalog.lower() in self.catalog_suffix else "publicrelease"
 
+    def num_to_macos(self,macos_num,for_url=True):
+        if for_url: # Resolve 8-5 to their names and show Big Sur as 10.16
+            return self.mac_os_names_url.get(str(macos_num),"10.{}".format(macos_num)) if macos_num <= 16 else str(macos_num-5)
+        # Return 10.xx for anything Catalina and lower, otherwise 11+
+        return "10.{}".format(macos_num) if macos_num <= 15 else str(macos_num-5)
+
+    def macos_to_num(self,macos):
+        try:
+            macos_parts = [int(x) for x in macos.split(".")][:2 if macos.startswith("10.") else 1]
+            if macos_parts[0] == 11: macos_parts = [10,16] # Big sur
+        except:
+            return None
+        if len(macos_parts) > 1: return macos_parts[1]
+        return 16+macos_parts[0]
+
+    def get_macos_versions(self,minos=None,maxos=None,catalog=""):
+        if minos is None: minos = self.min_macos
+        if maxos is None: maxos = self.current_macos
+        if minos > maxos: minos,maxos = maxos,minos # Ensure min is less than or equal
+        os_versions = [self.num_to_macos(x,for_url=True) for x in range(minos,maxos+1)]
+        if catalog:
+            # We have a custom catalog - prepend the first entry + catalog to the list
+            custom_cat_entry = os_versions[-1]+catalog
+            os_versions.append(custom_cat_entry)
+        return os_versions
+
     def build_url(self, **kwargs):
         catalog = kwargs.get("catalog", self.current_catalog).lower()
         catalog = catalog if catalog.lower() in self.catalog_suffix else "publicrelease"
         version = int(kwargs.get("version", self.current_macos))
-        url = "https://swscan.apple.com/content/catalogs/others/index-"
-        url += "-".join([self.mac_os_names_url[str(x)] if str(x) in self.mac_os_names_url else "10."+str(x) for x in reversed(range(self.min_macos, version+1))])
-        url += ".merged-1.sucatalog"
-        ver_s = self.mac_os_names_url[str(version)] if str(version) in self.mac_os_names_url else "10."+str(version)
-        if len(self.catalog_suffix[catalog]):
-            url = url.replace(ver_s, ver_s+self.catalog_suffix[catalog]+"-"+ver_s)
-        return url
+        return "https://swscan.apple.com/content/catalogs/others/index-{}.merged-1.sucatalog".format(
+            "-".join(reversed(self.get_macos_versions(self.min_macos,version,catalog=self.catalog_suffix.get(catalog,""))))
+        )
 
     def get_catalog_data(self, local = False):
         # Gets the data based on our current_catalog
@@ -321,7 +345,7 @@ class gibMacOS:
         self.u.head()
         print("")
         print("Current Catalog:   {}".format(self.current_catalog))
-        print("Max macOS Version: 10.{}".format(self.current_macos))
+        print("Max macOS Version: {}".format(self.num_to_macos(self.current_macos,for_url=False)))
         print("")
         print("{}".format(self.build_url()))
         print("")
@@ -364,12 +388,13 @@ class gibMacOS:
         self.resize()
         self.u.head("Select Max macOS Version")
         print("")
-        print("Currently set to 10.{}".format(self.current_macos))
+        print("Currently set to {}".format(self.num_to_macos(self.current_macos,for_url=False)))
         print("")
         print("M. Main Menu")
         print("Q. Quit")
         print("")
-        menu = self.u.grab("Please type the max macOS version for the catalog url (10.xx format):  ")
+        print("Please type the max macOS version for the catalog url")
+        menu = self.u.grab("eg. 10.15 for Catalina, 11 for Big Sur, 12 for Monterey:  ")
         if not len(menu):
             self.pick_macos()
             return
@@ -377,18 +402,10 @@ class gibMacOS:
             return
         elif menu[0].lower() == "q":
             self.u.custom_quit()
-        # At this point - we should have something in 10.xx format
-        parts = menu.split(".")
-        if len(parts) > 2 or len(parts) < 2 or parts[0] != "10":
-            self.pick_macos()
-            return
-        # Got the right format
-        try:
-            self.current_macos = int(parts[1])
-        except:
-            # Not an int
-            self.pick_macos()
-            return
+        # At this point - we should have something in the proper format
+        version = self.macos_to_num(menu)
+        if not version: return
+        self.current_macos = version
         # At this point, we should be good
         self.get_catalog_data()
 
@@ -417,7 +434,7 @@ class gibMacOS:
             print(var1)
             print(var2)
         print("")
-        print("M. Change Max-OS Version (Currently 10.{})".format(self.current_macos))
+        print("M. Change Max-OS Version (Currently {})".format(self.num_to_macos(self.current_macos,for_url=False)))
         print("C. Change Catalog (Currently {})".format(self.current_catalog))
         print("I. Only Print URLs (Currently {})".format(self.print_urls))
         if sys.platform.lower() == "darwin":
