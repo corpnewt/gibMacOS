@@ -1,161 +1,284 @@
-#!/usr/bin/env python
-from Scripts import *
-import os, datetime, shutil, time, sys, argparse
+#!/usr/bin/env bash
 
-# Using the techniques outlined by wolfmannight here:  https://www.insanelymac.com/forum/topic/338810-create-legit-copy-of-macos-from-apple-catalog/
+# Get the curent directory, the script name
+# and the script name with "py" substituted for the extension.
+args=( "$@" )
+dir="${0%/*}"
+script="${0##*/}"
+target="${script%.*}.py"
+NL=$'\n'
 
-class buildMacOSInstallApp:
-    def __init__(self):
-        self.r = run.Run()
-        self.u = utils.Utils("Build macOS Install App")
-        self.target_files = [
-            "BaseSystem.dmg",
-            "BaseSystem.chunklist",
-            "InstallESDDmg.pkg",
-            "InstallInfo.plist",
-            "AppleDiagnostics.dmg",
-            "AppleDiagnostics.chunklist"
-        ]
-        # Verify we're on macOS - this doesn't work anywhere else
-        if not sys.platform == "darwin":
-            self.u.head("WARNING")
-            print("")
-            print("This script only runs on macOS!")
-            print("")
-            exit(1)
+# use_py3:
+#   TRUE  = Use if found, use py2 otherwise
+#   FALSE = Use py2
+#   FORCE = Use py3
+use_py3="TRUE"
 
-    def mount_dmg(self, dmg, no_browse = False):
-        # Mounts the passed dmg and returns the mount point(s)
-        args = ["/usr/bin/hdiutil", "attach", dmg, "-plist", "-noverify"]
-        if no_browse:
-            args.append("-nobrowse")
-        out = self.r.run({"args":args})
-        if out[2] != 0:
-            # Failed!
-            raise Exception("Mount Failed!", "{} failed to mount:\n\n{}".format(os.path.basename(dmg), out[1]))
-        # Get the plist data returned, and locate the mount points
-        try:
-            plist_data = plist.loads(out[0])
-            mounts = [x["mount-point"] for x in plist_data.get("system-entities", []) if "mount-point" in x]
-            return mounts
-        except:
-            raise Exception("Mount Failed!", "No mount points returned from {}".format(os.path.basename(dmg)))
+tempdir=""
 
-    def unmount_dmg(self, mount_point):
-        # Unmounts the passed dmg or mount point - retries with force if failed
-        # Can take either a single point or a list
-        if not type(mount_point) is list:
-            mount_point = [mount_point]
-        unmounted = []
-        for m in mount_point:    
-            args = ["/usr/bin/hdiutil", "detach", m]
-            out = self.r.run({"args":args})
-            if out[2] != 0:
-                # Polite failed, let's crush this b!
-                args.append("-force")
-                out = self.r.run({"args":args})
-                if out[2] != 0:
-                    # Oh... failed again... onto the next...
-                    print(out[1])
-                    continue
-            unmounted.append(m)
-        return unmounted
+set_use_py3_if () {
+    # Auto sets the "use_py3" variable based on
+    # conditions passed
+    # $1 = 0 (equal), 1 (greater), 2 (less), 3 (gequal), 4 (lequal)
+    # $2 = OS version to compare
+    # $3 = TRUE/FALSE/FORCE in case of match
+    if [ "$1" == "" ] || [ "$2" == "" ] || [ "$3" == "" ]; then
+        # Missing vars - bail with no changes.
+        return
+    fi
+    local current_os= comp=
+    current_os="$(sw_vers -productVersion)"
+    comp="$(vercomp "$current_os" "$2")"
+    # Check gequal and lequal first
+    if [[ "$1" == "3" && ("$comp" == "1" || "$comp" == "0") ]] || [[ "$1" == "4" && ("$comp" == "2" || "$comp" == "0") ]] || [[ "$comp" == "$1" ]]; then
+        use_py3="$3"
+    fi
+}
 
-    def main(self):
-        while True:
-            self.u.head()
-            print("")
-            print("Q. Quit")
-            print("")
-            fold = self.u.grab("Please drag and drop the output folder from gibMacOS here:  ")
-            print("")
-            if fold.lower() == "q":
-                self.u.custom_quit()
-            f_path = self.u.check_path(fold)
-            if not f_path:
-                print("That path does not exist!\n")
-                self.u.grab("Press [enter] to return...")
-                continue
-            # Let's check if it's a folder.  If not, make the next directory up the target
-            if not os.path.isdir(f_path):
-                f_path = os.path.dirname(os.path.realpath(f_path))
-            # Walk the contents of f_path and ensure we have all the needed files
-            lower_contents = [y.lower() for y in os.listdir(f_path)]
-            missing_list = [x for x in self.target_files if not x.lower() in lower_contents]
-            if len(missing_list):
-                self.u.head("Missing Required Files")
-                print("")
-                print("That folder is missing the following required files:")
-                print(", ".join(missing_list))
-                print("")
-                self.u.grab("Press [enter] to return...")
-            # Time to build the installer!
-            cwd = os.getcwd()
-            os.chdir(f_path)
-            base_mounts = []
-            try:
-                self.u.head("Building Installer")
-                print("")
-                print("Taking ownership of downloaded files...")
-                for x in self.target_files:
-                    print(" - {}...".format(x))
-                    self.r.run({"args":["chmod","a+x",x]})
-                print("Mounting BaseSystem.dmg...")
-                base_mounts = self.mount_dmg("BaseSystem.dmg")
-                if not len(base_mounts):
-                    raise Exception("Mount Failed!", "No mount points were returned from BaseSystem.dmg")
-                base_mount = base_mounts[0] # Let's assume the first
-                print("Locating Installer app...")
-                install_app = next((x for x in os.listdir(base_mount) if os.path.isdir(os.path.join(base_mount,x)) and x.lower().endswith(".app") and not x.startswith(".")),None)
-                if not install_app:
-                    raise Exception("Installer app not located in {}".format(base_mount))
-                print(" - Found {}".format(install_app))
-                # Copy the .app over
-                out = self.r.run({"args":["cp","-R",os.path.join(base_mount,install_app),os.path.join(f_path,install_app)]})
-                if out[2] != 0:
-                    raise Exception("Copy Failed!", out[1])
-                print("Unmounting BaseSystem.dmg...")
-                for x in base_mounts:
-                    self.unmount_dmg(x)
-                base_mounts = []
-                shared_support = os.path.join(f_path,install_app,"Contents","SharedSupport")
-                if not os.path.exists(shared_support):
-                    print("Creating SharedSupport directory...")
-                    os.makedirs(shared_support)
-                print("Copying files to SharedSupport...")
-                for x in self.target_files:
-                    y = "InstallESD.dmg" if x.lower() == "installesddmg.pkg" else x # InstallESDDmg.pkg gets renamed to InstallESD.dmg - all others stay the same
-                    print(" - {}{}".format(x, " --> {}".format(y) if y != x else ""))
-                    out = self.r.run({"args":["cp","-R",os.path.join(f_path,x),os.path.join(shared_support,y)]})
-                    if out[2] != 0:
-                        raise Exception("Copy Failed!", out[1])
-                print("Patching InstallInfo.plist...")
-                with open(os.path.join(shared_support,"InstallInfo.plist"),"rb") as f:
-                    p = plist.load(f)
-                if "Payload Image Info" in p:
-                    pii = p["Payload Image Info"]
-                    if "URL" in pii: pii["URL"] = pii["URL"].replace("InstallESDDmg.pkg","InstallESD.dmg")
-                    if "id" in pii: pii["id"] = pii["id"].replace("com.apple.pkg.InstallESDDmg","com.apple.dmg.InstallESD")
-                    pii.pop("chunklistURL",None)
-                    pii.pop("chunklistid",None)
-                with open(os.path.join(shared_support,"InstallInfo.plist"),"wb") as f:
-                    plist.dump(p,f)
-                print("")
-                print("Created:  {}".format(install_app))
-                print("Saved to: {}".format(os.path.join(f_path,install_app)))
-                print("")
-                self.u.grab("Press [enter] to return...")
-            except Exception as e:
-                print("An error occurred:")
-                print(" - {}".format(e))
-                print("")
-                if len(base_mounts):
-                    for x in base_mounts:
-                        print(" - Unmounting {}...".format(x))
-                        self.unmount_dmg(x)
-                    print("")
-                self.u.grab("Press [enter] to return...")
+get_remote_py_version () {
+    local pyurl= py_html= py_vers= py_num="3"
+    pyurl="https://www.python.org/downloads/macos/"
+    py_html="$(curl -L $pyurl 2>&1)"
+    if [ "$use_py3" == "" ]; then
+        use_py3="TRUE"
+    fi
+    if [ "$use_py3" == "FALSE" ]; then
+        py_num="2"
+    fi
+    py_vers="$(echo "$py_html" | grep -i "Latest Python $py_num Release" | awk '{print $8}' | cut -d'<' -f1)"
+    echo "$py_vers"
+}
 
-if __name__ == '__main__':
-    b = buildMacOSInstallApp()
-    b.main()
+download_py () {
+    local vers="$1" url=
+    clear
+    echo "  ###                        ###"
+    echo " #     Downloading Python     #"
+    echo "###                        ###"
+    echo
+    if [ "$vers" == "" ]; then
+        echo "Gathering latest version..."
+        vers="$(get_remote_py_version)"
+    fi
+    if [ "$vers" == "" ]; then
+        # Didn't get it still - bail
+        print_error
+    fi
+    echo "Located Version:  $vers"
+    echo
+    echo "Building download url..."
+    url="$(curl -L https://www.python.org/downloads/release/python-${vers//./}/ 2>&1 | grep -iE "python-$vers-macos.*.pkg\"" | awk -F'"' '{ print $2 }')"
+    if [ "$url" == "" ]; then
+        # Couldn't get the URL - bail
+        print_error
+    fi
+    echo " - $url"
+    echo
+    echo "Downloading..."
+    echo
+    # Create a temp dir and download to it
+    tempdir="$(mktemp -d 2>/dev/null || mktemp -d -t 'tempdir')"
+    curl "$url" -o "$tempdir/python.pkg"
+    if [ "$?" != "0" ]; then
+        echo
+        echo " - Failed to download python installer!"
+        echo
+        exit $?
+    fi
+    echo
+    echo "Running python install package..."
+    sudo installer -pkg "$tempdir/python.pkg" -target /
+    if [ "$?" != "0" ]; then
+        echo
+        echo " - Failed to install python!"
+        echo
+        exit $?
+    fi
+    echo
+    vers_folder="Python $(echo "$vers" | cut -d'.' -f1 -f2)"
+    if [ -f "/Applications/$vers_folder/Install Certificates.command" ]; then
+        # Certs script exists - let's execute that to make sure our certificates are updated
+        echo "Updating Certificates..."
+        echo
+        "/Applications/$vers_folder/Install Certificates.command"
+        echo 
+    fi
+    echo "Cleaning up..."
+    cleanup
+    echo
+    # Now we check for py again
+    echo "Rechecking py..."
+    downloaded="TRUE"
+    clear
+    main
+}
+
+cleanup () {
+    if [ -d "$tempdir" ]; then
+        rm -Rf "$tempdir"
+    fi
+}
+
+print_error() {
+    clear
+    cleanup
+    echo "  ###                      ###"
+    echo " #     Python Not Found     #"
+    echo "###                      ###"
+    echo
+    echo "Python is not installed or not found in your PATH var."
+    echo
+    echo "Please go to https://www.python.org/downloads/macos/"
+    echo "to download and install the latest version."
+    echo
+    exit 1
+}
+
+print_target_missing() {
+    clear
+    cleanup
+    echo "  ###                      ###"
+    echo " #     Target Not Found     #"
+    echo "###                      ###"
+    echo
+    echo "Could not locate $target!"
+    echo
+    exit 1
+}
+
+vercomp () {
+    # From: https://stackoverflow.com/a/4025065
+    if [[ $1 == $2 ]]
+    then
+        echo "0"
+        return
+    fi
+    local IFS=.
+    local i ver1=($1) ver2=($2)
+    # fill empty fields in ver1 with zeros
+    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++))
+    do
+        ver1[i]=0
+    done
+    for ((i=0; i<${#ver1[@]}; i++))
+    do
+        if [[ -z ${ver2[i]} ]]
+        then
+            # fill empty fields in ver2 with zeros
+            ver2[i]=0
+        fi
+        if ((10#${ver1[i]} > 10#${ver2[i]}))
+        then
+            echo "1"
+            return
+        fi
+        if ((10#${ver1[i]} < 10#${ver2[i]}))
+        then
+            echo "2"
+            return
+        fi
+    done
+    echo "0"
+}
+
+get_local_python_version() {
+    # $1 = Python bin name (defaults to python3)
+    # Echoes the path to the highest version of the passed python bin if any
+    local py_name="$1" max_version= python= python_version= python_path=
+    if [ "$py_name" == "" ]; then
+        py_name="python3"
+    fi
+    py_list="$(which -a "$py_name" 2>/dev/null)"
+    # Walk that newline separated list
+    while read python; do
+        if [ "$python" == "" ]; then
+            # Got a blank line - skip
+            continue
+        fi
+        python_version="$($python -V 2>&1 | cut -d' ' -f2 | grep -E "[\d.]+")"
+        if [ "$python_version" == "" ]; then
+            # Didn't find a py version - skip
+            continue
+        fi
+        # Got the py version - compare to our max
+        if [ "$max_version" == "" ] || [ "$(vercomp "$python_version" "$max_version")" == "1" ]; then
+            # Max not set, or less than the current - update it
+            max_version="$python_version"
+            python_path="$python"
+        fi
+    done <<< "$py_list"
+    echo "$python_path"
+}
+
+prompt_and_download() {
+    if [ "$downloaded" != "FALSE" ]; then
+        # We already tried to download - just bail
+        print_error
+    fi
+    clear
+    echo "  ###                      ###"
+    echo " #     Python Not Found     #"
+    echo "###                      ###"
+    echo
+    target_py="Python 3"
+    printed_py="Python 2 or 3"
+    if [ "$use_py3" == "FORCE" ]; then
+        printed_py="Python 3"
+    elif [ "$use_py3" == "FALSE" ]; then
+        target_py="Python 2"
+        printed_py="Python 2"
+    fi
+    echo "Could not locate $printed_py!"
+    echo
+    echo "This script requires $printed_py to run."
+    echo
+    while true; do
+        read -p "Would you like to install the latest $target_py now? (y/n):  " yn
+        case $yn in
+            [Yy]* ) download_py;break;;
+            [Nn]* ) print_error;;
+        esac
+    done
+}
+
+main() {
+    python=
+    version=
+    # Verify our target exists
+    if [ ! -f "$dir/$target" ]; then
+        # Doesn't exist
+        print_target_missing
+    fi
+    if [ "$use_py3" == "" ]; then
+        use_py3="TRUE"
+    fi
+    if [ "$use_py3" != "FALSE" ]; then
+        # Check for py3 first
+        python="$(get_local_python_version python3)"
+        version="$($python -V 2>&1 | cut -d' ' -f2 | grep -E "[\d.]+")"
+    fi
+    if [ "$use_py3" != "FORCE" ] && [ "$python" == "" ]; then
+        # We aren't using py3 explicitly, and we don't already have a path
+        python="$(get_local_python_version python2)"
+        if [ "$python" == "" ]; then
+            # Try just looking for "python"
+            python="$(get_local_python_version python)"
+        fi
+        version="$($python -V 2>&1 | cut -d' ' -f2 | grep -E "[\d.]+")"
+    fi
+    if [ "$python" == "" ]; then
+        # Didn't ever find it - prompt
+        prompt_and_download
+        return 1
+    fi
+    # Found it - start our script and pass all args
+    "$python" "$dir/$target" "${args[@]}"
+}
+
+# Check to see if we need to force based on
+# macOS version. 10.15 has a dummy python3 version
+# that can trip up some py3 detection in other scripts.
+# set_use_py3_if "3" "10.15" "FORCE"
+downloaded="FALSE"
+trap cleanup EXIT
+main
