@@ -47,6 +47,15 @@ Thanks to:
 - MajorOSInfo.pkg `798f352f7844a8c764ee09ed7c6dbb2aea52b95bb834d209c6b3f6cf43e86c1a`
 - UpdateBrain.zip `d74a0bf96d7897f11d0b1a9b7d101a63d695306a24569441b95b2aca8018829c`
 
+### macOS Big Sur 11.6.4 (20G417)
+
+- BuildManifest.plist `7e24257961122a3975a8ac90b5cdc91a60d75619cbe532e9134735dc80e57c79` 
+- Info.plist `1d402362301406755793a2e68b6e60a6b7190213aa6a976252f59f64f7b220b6` 
+- InstallAssistant.pkg `91f3b15c2d6ba7be6bac181632be0a3877fbaed18ae0225f07225da83244c147` 
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3` 
+- MajorOSInfo.pkg `96dd8cdead503a8c807f70854fbe7d06906013d0463c31208b1ef1a4953ee250` 
+- UpdateBrain.zip `d18cfe70e19ab3fa72e1721bbe2b7894d1de38689e0c6855b937bdda0edaf6ac` 
+
 ### macOS Big Sur 11.6.1 (20G224)
 - BuildManifest.plist `580c2bcf7d23df0f60dbf8f625fbd8d49f967c8ed6af45bf48d85cb2feac8605` 
 - Info.plist `6e045ae019c6b64e4d4dab386030ee9aec1732b3698c79df5877e245c566799b` 
