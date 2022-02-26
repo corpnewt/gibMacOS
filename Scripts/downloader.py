@@ -78,14 +78,15 @@ class Downloader:
         b = b.rstrip("0") if strip_zeroes else b.ljust(round_to,"0") if round_to > 0 else ""
         return "{:,}{} {}".format(int(a),"" if not b else "."+b,biggest)
 
-    def _progress_hook(self, response, bytes_so_far, total_size):
+    def _progress_hook(self, response, bytes_so_far, total_size, time_start):
         if total_size > 0:
             percent = float(bytes_so_far) / total_size
             percent = round(percent*100, 2)
+            download_speed = bytes_so_far // (time.time() - time_start) / 1000000 / 8
             t_s = self.get_size(total_size)
             try: b_s = self.get_size(bytes_so_far, t_s.split(" ")[1])
             except: b_s = self.get_size(bytes_so_far)
-            sys.stdout.write("Downloaded {} of {} ({:.2f}%)\r".format(b_s, t_s, percent))
+            sys.stdout.write("Downloaded {} of {} ({:.2f}%) \t {:.2f} MB/s\r".format(b_s, t_s, percent, download_speed))
         else:
             b_s = self.get_size(bytes_so_far)
             sys.stdout.write("Downloaded {}\r".format(b_s))
@@ -105,7 +106,7 @@ class Downloader:
         while True:
             chunk = response.read(self.chunk)
             bytes_so_far += len(chunk)
-            if progress: self._progress_hook(response, bytes_so_far, total_size)
+            if progress: self._progress_hook(response, bytes_so_far, total_size, time_start)
             if not chunk: break
             chunk_so_far += chunk
         if expand_gzip and response.headers.get("Content-Encoding","unknown").lower() == "gzip":
@@ -124,7 +125,7 @@ class Downloader:
             while True:
                 chunk = response.read(self.chunk)
                 bytes_so_far += len(chunk)
-                if progress: self._progress_hook(response, bytes_so_far, total_size)
+                if progress: self._progress_hook(response, bytes_so_far, total_size, time_start)
                 if not chunk: break
                 f.write(chunk)
         return file_path if os.path.exists(file_path) else None
