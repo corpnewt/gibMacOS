@@ -60,7 +60,7 @@ Thanks to:
 
 - BuildManifest.plist `a91e2c762b51e65f44a4dc07e87de356e4fd2b3618ef2eb9fa127e46ea7a24c9` 
 - Info.plist `619ee023fa222e19d2bef7e20598a52116b040806af5279189ed7f8b1a025adc` 
-- InstallAssistant.pkg `cee825abdc15df63695cfe35e700e9dcab6d84e18869c283c4e20beab5660b5d` 
+- InstallAssistant.pkg `dee8b604e1ef66f4385fa03cb57d29cbc7efef6c1e7f8740aefd37a268c2bb16` 
 - InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3` 
 - MajorOSInfo.pkg `b73d1fb3a5c2faff2e3747d02301c6f800824a957438c2a0479a0ed4bf9320b0` 
 - UpdateBrain.zip `02f0ef70aaa434db98fc326f5e16146e42cce012f644e17311411fe50438ea00` 
