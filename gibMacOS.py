@@ -9,7 +9,10 @@ class gibMacOS:
         self.r = run.Run()
         self.min_w = 80
         self.min_h = 24
-        self.u.resize(self.min_w, self.min_h)
+        if os.name == "nt":
+            self.min_w = 120
+            self.min_h = 30
+        self.resize()
 
         self.catalog_suffix = {
             "public" : "beta",
@@ -56,9 +59,6 @@ class gibMacOS:
         )
 
     def resize(self, width=0, height=0):
-        if os.name=="nt":
-            # Winders resizing is dumb... bail
-            return
         width = width if width > self.min_w else self.min_w
         height = height if height > self.min_h else self.min_h
         self.u.resize(width, height)
@@ -410,18 +410,13 @@ class gibMacOS:
         self.get_catalog_data()
 
     def main(self, dmg = False):
-        self.u.head()
-        print("")
-        print("Available Products:")
-        print("")
-        num = 0
-        w = 0
-        pad = 12
+        lines = [""]
+        lines.append("Available Products:")
+        lines.append("")
         if not len(self.mac_prods):
-            print("No installers in catalog!")
-            print("")
-        for p in self.mac_prods:
-            num += 1
+            lines.append("No installers in catalog!")
+            lines.append("")
+        for num,p in enumerate(self.mac_prods,start=1):
             var1 = "{}. {} {}".format(num, p["title"], p["version"])
             if p["build"].lower() != "unknown":
                 var1 += " ({})".format(p["build"])
@@ -429,25 +424,22 @@ class gibMacOS:
             if self.find_recovery and p["installer"]:
                 # Show that it's a full installer
                 var2 += " - FULL Install"
-            w = len(var1) if len(var1) > w else w
-            w = len(var2) if len(var2) > w else w
-            print(var1)
-            print(var2)
-        print("")
-        print("M. Change Max-OS Version (Currently {})".format(self.num_to_macos(self.current_macos,for_url=False)))
-        print("C. Change Catalog (Currently {})".format(self.current_catalog))
-        print("I. Only Print URLs (Currently {})".format(self.print_urls))
+            lines.append(var1)
+            lines.append(var2)
+        lines.append("")
+        lines.append("M. Change Max-OS Version (Currently {})".format(self.num_to_macos(self.current_macos,for_url=False)))
+        lines.append("C. Change Catalog (Currently {})".format(self.current_catalog))
+        lines.append("I. Only Print URLs (Currently {})".format(self.print_urls))
         if sys.platform.lower() == "darwin":
-            pad += 2
-            print("S. Set Current Catalog to SoftwareUpdate Catalog")
-            print("L. Clear SoftwareUpdate Catalog")
-        print("R. Toggle Recovery-Only (Currently {})".format("On" if self.find_recovery else "Off"))
-        print("U. Show Catalog URL")
-        print("Q. Quit")
-        self.resize(w, (num*2)+pad)
-        if os.name=="nt":
-            # Formatting differences..
-            print("")
+            lines.append("S. Set Current Catalog to SoftwareUpdate Catalog")
+            lines.append("L. Clear SoftwareUpdate Catalog")
+        lines.append("R. Toggle Recovery-Only (Currently {})".format("On" if self.find_recovery else "Off"))
+        lines.append("U. Show Catalog URL")
+        lines.append("Q. Quit")
+        self.resize(len(max(lines)), len(lines)+5)
+        self.u.head()
+        if os.name=="nt": lines.append("") # Add a final newline on Windows for formatting differences
+        print("\n".join(lines))
         menu = self.u.grab("Please select an option:  ")
         if not len(menu):
             return
@@ -488,6 +480,7 @@ class gibMacOS:
         elif menu[0].lower() == "r":
             self.find_recovery ^= True
         if menu[0].lower() in ["m","c","r"]:
+            self.resize()
             self.u.head("Parsing Data")
             print("")
             print("Re-scanning products after url preference toggled...")
