@@ -436,9 +436,9 @@ class gibMacOS:
         lines.append("R. Toggle Recovery-Only (Currently {})".format("On" if self.find_recovery else "Off"))
         lines.append("U. Show Catalog URL")
         lines.append("Q. Quit")
-        self.resize(len(max(lines)), len(lines)+5)
+        lines.append("")
+        self.resize(len(max(lines)), len(lines)+4)
         self.u.head()
-        if os.name=="nt": lines.append("") # Add a final newline on Windows for formatting differences
         print("\n".join(lines))
         menu = self.u.grab("Please select an option:  ")
         if not len(menu):
