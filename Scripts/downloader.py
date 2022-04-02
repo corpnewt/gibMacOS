@@ -13,7 +13,7 @@ class Downloader:
     def __init__(self,**kwargs):
         self.ua = kwargs.get("useragent",{"User-Agent":"Mozilla"})
         self.chunk = 1048576 # 1024 x 1024 i.e. 1MiB
-
+        if os.name=="nt": os.system("color") # Initialize cmd for ANSI escapes
         # Provide reasonable default logic to workaround macOS CA file handling 
         cafile = ssl.get_default_verify_paths().openssl_cafile
         try:
@@ -78,17 +78,17 @@ class Downloader:
         b = b.rstrip("0") if strip_zeroes else b.ljust(round_to,"0") if round_to > 0 else ""
         return "{:,}{} {}".format(int(a),"" if not b else "."+b,biggest)
 
-    def _progress_hook(self, response, bytes_so_far, total_size):
+    def _progress_hook(self, bytes_so_far, total_size):
         if total_size > 0:
             percent = float(bytes_so_far) / total_size
             percent = round(percent*100, 2)
             t_s = self.get_size(total_size)
             try: b_s = self.get_size(bytes_so_far, t_s.split(" ")[1])
             except: b_s = self.get_size(bytes_so_far)
-            sys.stdout.write("Downloaded {} of {} ({:.2f}%)\r".format(b_s, t_s, percent))
+            sys.stdout.write("\r\033[KDownloaded {} of {} ({:.2f}%)".format(b_s, t_s, percent))
         else:
             b_s = self.get_size(bytes_so_far)
-            sys.stdout.write("Downloaded {}\r".format(b_s))
+            sys.stdout.write("\r\033[KDownloaded {}".format(b_s))
 
     def get_string(self, url, progress = True, headers = None, expand_gzip = True):
         response = self.get_bytes(url,progress,headers,expand_gzip)
@@ -105,13 +105,14 @@ class Downloader:
         while True:
             chunk = response.read(self.chunk)
             bytes_so_far += len(chunk)
-            if progress: self._progress_hook(response, bytes_so_far, total_size)
+            if progress: self._progress_hook(bytes_so_far,total_size)
             if not chunk: break
             chunk_so_far += chunk
         if expand_gzip and response.headers.get("Content-Encoding","unknown").lower() == "gzip":
             fileobj = BytesIO(chunk_so_far)
             gfile   = gzip.GzipFile(fileobj=fileobj)
             return gfile.read()
+        if progress: print("") # Add a newline so our last progress prints completely
         return chunk_so_far
 
     def stream_to_file(self, url, file_path, progress = True, headers = None):
@@ -124,7 +125,8 @@ class Downloader:
             while True:
                 chunk = response.read(self.chunk)
                 bytes_so_far += len(chunk)
-                if progress: self._progress_hook(response, bytes_so_far, total_size)
+                if progress: self._progress_hook(bytes_so_far,total_size)
                 if not chunk: break
                 f.write(chunk)
+        if progress: print("") # Add a newline so our last progress prints completely
         return file_path if os.path.exists(file_path) else None
