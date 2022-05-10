@@ -48,7 +48,7 @@ set_use_py3_if () {
         # Missing vars - bail with no changes.
         return
     fi
-    if [ "$(compare_to_version "$1" "$2")" == "0" ]; then
+    if [ "$(compare_to_version "$1" "$2")" == "1" ]; then
         use_py3="$3"
     fi
 }
