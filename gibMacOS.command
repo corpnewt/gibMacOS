@@ -16,6 +16,28 @@ use_py3="TRUE"
 
 tempdir=""
 
+compare_to_version () {
+    # Compares our OS version to the passed OS version, and
+    # return a 1 if we match the passed compare type, or a 0 if we don't.
+    # $1 = 0 (equal), 1 (greater), 2 (less), 3 (gequal), 4 (lequal)
+    # $2 = OS version to compare ours to
+    if [ "$1" == "" ] || [ "$2" == "" ]; then
+        # Missing info - bail.
+        return
+    fi
+    local current_os= comp=
+    current_os="$(sw_vers -productVersion)"
+    comp="$(vercomp "$current_os" "$1")"
+    # Check gequal and lequal first
+    if [[ "$1" == "3" && ("$comp" == "1" || "$comp" == "0") ]] || [[ "$1" == "4" && ("$comp" == "2" || "$comp" == "0") ]] || [[ "$comp" == "$1" ]]; then
+        # Matched
+        echo 1
+    else
+        # No match
+        echo 0
+    fi
+}
+
 set_use_py3_if () {
     # Auto sets the "use_py3" variable based on
     # conditions passed
@@ -26,11 +48,7 @@ set_use_py3_if () {
         # Missing vars - bail with no changes.
         return
     fi
-    local current_os= comp=
-    current_os="$(sw_vers -productVersion)"
-    comp="$(vercomp "$current_os" "$2")"
-    # Check gequal and lequal first
-    if [[ "$1" == "3" && ("$comp" == "1" || "$comp" == "0") ]] || [[ "$1" == "4" && ("$comp" == "2" || "$comp" == "0") ]] || [[ "$comp" == "$1" ]]; then
+    if [ "$(compare_to_version "$1" "$2")" == "0" ]; then
         use_py3="$3"
     fi
 }
@@ -195,6 +213,14 @@ get_local_python_version() {
             # Got a blank line - skip
             continue
         fi
+        if [ "$check_py3_stub" == "1" ] && [ "$python" == "/usr/bin/python3" ]; then
+            # See if we have a valid developer path
+            xcode-select -p > /dev/null 2>&1
+            if [ "$?" != "0" ]; then
+                # /usr/bin/python3 path - but no valid developer dir
+                continue
+            fi
+        fi
         python_version="$($python -V 2>&1 | cut -d' ' -f2 | grep -E "[\d.]+")"
         if [ "$python_version" == "" ]; then
             # Didn't find a py version - skip
@@ -280,5 +306,8 @@ main() {
 # that can trip up some py3 detection in other scripts.
 # set_use_py3_if "3" "10.15" "FORCE"
 downloaded="FALSE"
+# Check for the aforementioned /usr/bin/python3 stub if
+# our OS version is 10.15 or greater.
+check_py3_stub="$(compare_to_version "3" "10.15")"
 trap cleanup EXIT
 main
