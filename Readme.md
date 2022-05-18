@@ -11,14 +11,23 @@ Thanks to:
 
 ## Checksum (SHA256)
 
+### macOS Monterey 12.4 (21F79)
+
+- BuildManifest.plist `3402d13d8b79b03a04e28ed975499a4acd0f489de8b957a00e353e8a351928b6`
+- Info.plist `2631433eaa05b3d2b18ff9347bf6ea99f8b802ca73ee9de39a9c3b3a80b51b4b`
+- InstallAssistant.pkg `201ad103cbcf8dd4b35b3aec7f94baa45881be063f9d30dab97d84ed4bdccc50`
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
+- MajorOSInfo.pkg `c3fe1c3fd1b5397d9f4e2e653fc1ce73d73f2f41468f68edd49e12c69e1d1ceb`
+- UpdateBrain.zip `17f1f7de487d08dbe82085f33037f1e4a08bca49dcd82567a7d3f0ae3b6da045`
+
 ### macOS Monterey 12.3 (21E230)
 
-- BuildManifest.plist `f3ecf4bbae7dc32690a4e3f0e88d006d25c55f41da5845b06555201f30f5b73b` 
-- Info.plist `7e995ab63ff8a0b0f589efd9077b33ee76143c33f7fd9c2784f8e0c5791f9f95` 
-- InstallAssistant.pkg `89a287cd36306134789e1646a4ab3dad11b912ab6925015b65806df13b568ce6` 
-- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3` 
-- MajorOSInfo.pkg `f8dc541e5fa8ccbba041a24d38f1e2458ddacceab532923372a790dc33fe7100` 
-- UpdateBrain.zip `d3286facb62bae4269a5386464a374435963ca6f6716db5aada6ebd51679a130` 
+- BuildManifest.plist `f3ecf4bbae7dc32690a4e3f0e88d006d25c55f41da5845b06555201f30f5b73b`
+- Info.plist `7e995ab63ff8a0b0f589efd9077b33ee76143c33f7fd9c2784f8e0c5791f9f95`
+- InstallAssistant.pkg `89a287cd36306134789e1646a4ab3dad11b912ab6925015b65806df13b568ce6`
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
+- MajorOSInfo.pkg `f8dc541e5fa8ccbba041a24d38f1e2458ddacceab532923372a790dc33fe7100`
+- UpdateBrain.zip `d3286facb62bae4269a5386464a374435963ca6f6716db5aada6ebd51679a130`
 
 ### macOS Monterey 12.2.1 (21D62)
 
@@ -56,31 +65,40 @@ Thanks to:
 - MajorOSInfo.pkg `798f352f7844a8c764ee09ed7c6dbb2aea52b95bb834d209c6b3f6cf43e86c1a`
 - UpdateBrain.zip `d74a0bf96d7897f11d0b1a9b7d101a63d695306a24569441b95b2aca8018829c`
 
+### macOS Big Sur 11.6.6 (20G624)
+
+- BuildManifest.plist `3960ac03ffbfc80078da4ba08caf4c34655e7fbf89ff7a5b162739a2c48254aa`
+- Info.plist `e20180155f5b4d3e2c6ab42d20e0d44748e74d0ec073e5acd430913568cd56a3`
+- InstallAssistant.pkg `f80bdf6b8cfef4399f4ef8b6563611237521d5d3d780a0126d7b324b33709d12`
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
+- MajorOSInfo.pkg `94b8132aabfd607509517c64f18bf45da550fa3894dc796edde41690a1d6a10c`
+- UpdateBrain.zip `e94a5816952b40fc7145f19ef737d14a18bd87368d09b79c4719bab925047f62`
+
 ### macOS Big Sur 11.6.5 (20G527)
 
-- BuildManifest.plist `a91e2c762b51e65f44a4dc07e87de356e4fd2b3618ef2eb9fa127e46ea7a24c9` 
-- Info.plist `619ee023fa222e19d2bef7e20598a52116b040806af5279189ed7f8b1a025adc` 
-- InstallAssistant.pkg `dee8b604e1ef66f4385fa03cb57d29cbc7efef6c1e7f8740aefd37a268c2bb16` 
-- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3` 
-- MajorOSInfo.pkg `b73d1fb3a5c2faff2e3747d02301c6f800824a957438c2a0479a0ed4bf9320b0` 
-- UpdateBrain.zip `02f0ef70aaa434db98fc326f5e16146e42cce012f644e17311411fe50438ea00` 
+- BuildManifest.plist `a91e2c762b51e65f44a4dc07e87de356e4fd2b3618ef2eb9fa127e46ea7a24c9`
+- Info.plist `619ee023fa222e19d2bef7e20598a52116b040806af5279189ed7f8b1a025adc`
+- InstallAssistant.pkg `dee8b604e1ef66f4385fa03cb57d29cbc7efef6c1e7f8740aefd37a268c2bb16`
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
+- MajorOSInfo.pkg `b73d1fb3a5c2faff2e3747d02301c6f800824a957438c2a0479a0ed4bf9320b0`
+- UpdateBrain.zip `02f0ef70aaa434db98fc326f5e16146e42cce012f644e17311411fe50438ea00`
 
 ### macOS Big Sur 11.6.4 (20G417)
 
-- BuildManifest.plist `7e24257961122a3975a8ac90b5cdc91a60d75619cbe532e9134735dc80e57c79` 
-- Info.plist `1d402362301406755793a2e68b6e60a6b7190213aa6a976252f59f64f7b220b6` 
-- InstallAssistant.pkg `91f3b15c2d6ba7be6bac181632be0a3877fbaed18ae0225f07225da83244c147` 
-- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3` 
-- MajorOSInfo.pkg `96dd8cdead503a8c807f70854fbe7d06906013d0463c31208b1ef1a4953ee250` 
-- UpdateBrain.zip `d18cfe70e19ab3fa72e1721bbe2b7894d1de38689e0c6855b937bdda0edaf6ac` 
+- BuildManifest.plist `7e24257961122a3975a8ac90b5cdc91a60d75619cbe532e9134735dc80e57c79`
+- Info.plist `1d402362301406755793a2e68b6e60a6b7190213aa6a976252f59f64f7b220b6`
+- InstallAssistant.pkg `91f3b15c2d6ba7be6bac181632be0a3877fbaed18ae0225f07225da83244c147`
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
+- MajorOSInfo.pkg `96dd8cdead503a8c807f70854fbe7d06906013d0463c31208b1ef1a4953ee250`
+- UpdateBrain.zip `d18cfe70e19ab3fa72e1721bbe2b7894d1de38689e0c6855b937bdda0edaf6ac`
 
 ### macOS Big Sur 11.6.1 (20G224)
-- BuildManifest.plist `580c2bcf7d23df0f60dbf8f625fbd8d49f967c8ed6af45bf48d85cb2feac8605` 
-- Info.plist `6e045ae019c6b64e4d4dab386030ee9aec1732b3698c79df5877e245c566799b` 
-- InstallAssistant.pkg `99c77e451667bb8309c0fac2696979410e2f6aad97d46e20c33054955ac64fa2` 
-- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3` 
-- MajorOSInfo.pkg `ec68584f89e719decb389b48bcd5f6962522f75a38eeccd6ab917f78f68b29d8` 
-- UpdateBrain.zip `4c080696e9bc91f90f235183e9bc5d4ee267044ed6c019bab91d2efaaf3b28df` 
+- BuildManifest.plist `580c2bcf7d23df0f60dbf8f625fbd8d49f967c8ed6af45bf48d85cb2feac8605`
+- Info.plist `6e045ae019c6b64e4d4dab386030ee9aec1732b3698c79df5877e245c566799b`
+- InstallAssistant.pkg `99c77e451667bb8309c0fac2696979410e2f6aad97d46e20c33054955ac64fa2`
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
+- MajorOSInfo.pkg `ec68584f89e719decb389b48bcd5f6962522f75a38eeccd6ab917f78f68b29d8`
+- UpdateBrain.zip `4c080696e9bc91f90f235183e9bc5d4ee267044ed6c019bab91d2efaaf3b28df`
 
 ### macOS Big Sur 11.6 (20G165)
 
@@ -149,7 +167,7 @@ Thanks to:
 
 - BuildManifest.plist `7fce3bedd1eb4c22ffc310682371c132f3b06d8c43149c3c6037e5679b974d3a`
 - Info.plist `d79c6ce007e37de635c96117e34265fcba17ae04c70c9ec290a030ac70a6a549`
-- InstallAssistant.pkg `0fd7cf05746316145012fadcf266413bbb862b3dfb8b5e58d9b0ca1e98f57f01` 
+- InstallAssistant.pkg `0fd7cf05746316145012fadcf266413bbb862b3dfb8b5e58d9b0ca1e98f57f01`
 - InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
 - MajorOSInfo.pkg `48279fcd96fccb69ee235f7162ecc83b3804af247dee2eaee6068a200145b09d`
 - UpdateBrain.zip `519ffe40bdf810771280757906f7580d1d395a35104a683727d812e33deddeaa`
@@ -216,19 +234,19 @@ Package "InstallAssistant.pkg":
     1. Software Update
        Expires: 2029-04-14 21:28:23 +0000
        SHA256 Fingerprint:
-           E0 74 D2 04 AC 24 98 E9 DC 90 4A 7B C7 CE D8 46 41 19 B7 9D 05 66 
+           E0 74 D2 04 AC 24 98 E9 DC 90 4A 7B C7 CE D8 46 41 19 B7 9D 05 66
            80 28 92 05 83 B1 E8 96 EB B4
        ------------------------------------------------------------------------
     2. Apple Software Update Certification Authority
        Expires: 2031-10-15 00:00:00 +0000
        SHA256 Fingerprint:
-           12 99 E9 BF E7 76 A2 9F F4 52 F8 C4 F5 E5 5F 3B 4D FD 29 34 34 9D 
+           12 99 E9 BF E7 76 A2 9F F4 52 F8 C4 F5 E5 5F 3B 4D FD 29 34 34 9D
            D1 85 0B 82 74 F3 5C 71 74 5C
        ------------------------------------------------------------------------
     3. Apple Root CA
        Expires: 2035-02-09 21:40:36 +0000
        SHA256 Fingerprint:
-           B0 B1 73 0E CB C7 FF 45 05 14 2C 49 F1 29 5E 6E DA 6B CA ED 7E 2C 
+           B0 B1 73 0E CB C7 FF 45 05 14 2C 49 F1 29 5E 6E DA 6B CA ED 7E 2C
            68 C5 BE 91 B5 A1 10 01 F0 24
 ```
 
