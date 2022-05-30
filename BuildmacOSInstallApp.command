@@ -6,7 +6,6 @@ args=( "$@" )
 dir="${0%/*}"
 script="${0##*/}"
 target="${script%.*}.py"
-NL=$'\n'
 
 # use_py3:
 #   TRUE  = Use if found, use py2 otherwise
@@ -21,20 +20,20 @@ compare_to_version () {
     # return a 1 if we match the passed compare type, or a 0 if we don't.
     # $1 = 0 (equal), 1 (greater), 2 (less), 3 (gequal), 4 (lequal)
     # $2 = OS version to compare ours to
-    if [ "$1" == "" ] || [ "$2" == "" ]; then
+    if [ -z "$1" ] || [ -z "$2" ]; then
         # Missing info - bail.
         return
     fi
     local current_os= comp=
     current_os="$(sw_vers -productVersion)"
-    comp="$(vercomp "$current_os" "$1")"
+    comp="$(vercomp "$current_os" "$2")"
     # Check gequal and lequal first
     if [[ "$1" == "3" && ("$comp" == "1" || "$comp" == "0") ]] || [[ "$1" == "4" && ("$comp" == "2" || "$comp" == "0") ]] || [[ "$comp" == "$1" ]]; then
         # Matched
-        echo 1
+        echo "1"
     else
         # No match
-        echo 0
+        echo "0"
     fi
 }
 
@@ -44,7 +43,7 @@ set_use_py3_if () {
     # $1 = 0 (equal), 1 (greater), 2 (less), 3 (gequal), 4 (lequal)
     # $2 = OS version to compare
     # $3 = TRUE/FALSE/FORCE in case of match
-    if [ "$1" == "" ] || [ "$2" == "" ] || [ "$3" == "" ]; then
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         # Missing vars - bail with no changes.
         return
     fi
@@ -57,7 +56,7 @@ get_remote_py_version () {
     local pyurl= py_html= py_vers= py_num="3"
     pyurl="https://www.python.org/downloads/macos/"
     py_html="$(curl -L $pyurl 2>&1)"
-    if [ "$use_py3" == "" ]; then
+    if [ -z "$use_py3" ]; then
         use_py3="TRUE"
     fi
     if [ "$use_py3" == "FALSE" ]; then
@@ -74,11 +73,11 @@ download_py () {
     echo " #     Downloading Python     #"
     echo "###                        ###"
     echo
-    if [ "$vers" == "" ]; then
+    if [ -z "$vers" ]; then
         echo "Gathering latest version..."
         vers="$(get_remote_py_version)"
     fi
-    if [ "$vers" == "" ]; then
+    if [ -z "$vers" ]; then
         # Didn't get it still - bail
         print_error
     fi
@@ -86,7 +85,7 @@ download_py () {
     echo
     echo "Building download url..."
     url="$(curl -L https://www.python.org/downloads/release/python-${vers//./}/ 2>&1 | grep -iE "python-$vers-macos.*.pkg\"" | awk -F'"' '{ print $2 }')"
-    if [ "$url" == "" ]; then
+    if [ -z "$url" ]; then
         # Couldn't get the URL - bail
         print_error
     fi
@@ -164,52 +163,34 @@ print_target_missing() {
     exit 1
 }
 
+format_version () {
+    local vers="$1"
+    echo "$(echo "$1" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }')"
+}
+
 vercomp () {
-    # From: https://stackoverflow.com/a/4025065
-    if [[ $1 == $2 ]]
-    then
+    # Modified from: https://apple.stackexchange.com/a/123408/11374
+    local ver1="$(format_version "$1")" ver2="$(format_version "$2")"
+    if [ $ver1 -gt $ver2 ]; then
+        echo "1"
+    elif [ $ver1 -lt $ver2 ]; then
+        echo "2"
+    else
         echo "0"
-        return
     fi
-    local IFS=.
-    local i ver1=($1) ver2=($2)
-    # fill empty fields in ver1 with zeros
-    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++))
-    do
-        ver1[i]=0
-    done
-    for ((i=0; i<${#ver1[@]}; i++))
-    do
-        if [[ -z ${ver2[i]} ]]
-        then
-            # fill empty fields in ver2 with zeros
-            ver2[i]=0
-        fi
-        if ((10#${ver1[i]} > 10#${ver2[i]}))
-        then
-            echo "1"
-            return
-        fi
-        if ((10#${ver1[i]} < 10#${ver2[i]}))
-        then
-            echo "2"
-            return
-        fi
-    done
-    echo "0"
 }
 
 get_local_python_version() {
     # $1 = Python bin name (defaults to python3)
     # Echoes the path to the highest version of the passed python bin if any
     local py_name="$1" max_version= python= python_version= python_path=
-    if [ "$py_name" == "" ]; then
+    if [ -z "$py_name" ]; then
         py_name="python3"
     fi
     py_list="$(which -a "$py_name" 2>/dev/null)"
     # Walk that newline separated list
     while read python; do
-        if [ "$python" == "" ]; then
+        if [ -z "$python" ]; then
             # Got a blank line - skip
             continue
         fi
@@ -221,19 +202,29 @@ get_local_python_version() {
                 continue
             fi
         fi
-        python_version="$($python -V 2>&1 | cut -d' ' -f2 | grep -E "[\d.]+")"
-        if [ "$python_version" == "" ]; then
+        python_version="$(get_python_version $python)"
+        if [ -z "$python_version" ]; then
             # Didn't find a py version - skip
             continue
         fi
         # Got the py version - compare to our max
-        if [ "$max_version" == "" ] || [ "$(vercomp "$python_version" "$max_version")" == "1" ]; then
+        if [ -z "$max_version" ] || [ "$(vercomp "$python_version" "$max_version")" == "1" ]; then
             # Max not set, or less than the current - update it
             max_version="$python_version"
             python_path="$python"
         fi
     done <<< "$py_list"
     echo "$python_path"
+}
+
+get_python_version() {
+    local py_path="$1" py_version=
+    # Get the python version by piping stderr into stdout (for py2), then grepping the output for
+    # the word "python", getting the second element, and grepping for an alphanumeric version number
+    py_version="$($py_path -V 2>&1 | grep -i python | cut -d' ' -f2 | grep -E "[A-Za-z\d\.]+")"
+    if [ ! -z "$py_version" ]; then
+        echo "$py_version"
+    fi
 }
 
 prompt_and_download() {
@@ -268,31 +259,28 @@ prompt_and_download() {
 }
 
 main() {
-    python=
-    version=
+    local python= version=
     # Verify our target exists
     if [ ! -f "$dir/$target" ]; then
         # Doesn't exist
         print_target_missing
     fi
-    if [ "$use_py3" == "" ]; then
+    if [ -z "$use_py3" ]; then
         use_py3="TRUE"
     fi
     if [ "$use_py3" != "FALSE" ]; then
         # Check for py3 first
         python="$(get_local_python_version python3)"
-        version="$($python -V 2>&1 | cut -d' ' -f2 | grep -E "[\d.]+")"
     fi
-    if [ "$use_py3" != "FORCE" ] && [ "$python" == "" ]; then
+    if [ "$use_py3" != "FORCE" ] && [ -z "$python" ]; then
         # We aren't using py3 explicitly, and we don't already have a path
         python="$(get_local_python_version python2)"
-        if [ "$python" == "" ]; then
+        if [ -z "$python" ]; then
             # Try just looking for "python"
             python="$(get_local_python_version python)"
         fi
-        version="$($python -V 2>&1 | cut -d' ' -f2 | grep -E "[\d.]+")"
     fi
-    if [ "$python" == "" ]; then
+    if [ -z "$python" ]; then
         # Didn't ever find it - prompt
         prompt_and_download
         return 1
