@@ -11,6 +11,15 @@ Thanks to:
 
 ## Checksum (SHA256)
 
+### macOS Monterey 12.4 (21F2092)
+
+- BuildManifest.plist `7467b5b6a5d0a4dcdabcf5ab42096601b7336ed09e92137fdf13e7312ecba7a6`
+- Info.plist `4c38ef0debd54f58802413f1b803c847db232d8da98b726361a6ddc19e2904b3`
+- InstallAssistant.pkg `f47bb51406b0249c2a8ae0bd228da07a28d0a9f7c07e64ac31d0d55b72963759`
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
+- MajorOSInfo.pkg `34fa2661ede296f28221e131bdce23b7080edc804c1c139fb2ea33dc60b31391`
+- UpdateBrain.zip `d743e8e24fed7ce38f955f38cc5dac46c79937915182a64b134fce8f44eb42c3`
+
 ### macOS Monterey 12.4 (21F79)
 
 - BuildManifest.plist `3402d13d8b79b03a04e28ed975499a4acd0f489de8b957a00e353e8a351928b6`
@@ -64,6 +73,15 @@ Thanks to:
 - InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
 - MajorOSInfo.pkg `798f352f7844a8c764ee09ed7c6dbb2aea52b95bb834d209c6b3f6cf43e86c1a`
 - UpdateBrain.zip `d74a0bf96d7897f11d0b1a9b7d101a63d695306a24569441b95b2aca8018829c`
+
+### macOS Big Sur 11.6.7 (20G630)
+
+- BuildManifest.plist `b3b066500994995c4bb4c788008f8e34c3b9378478bad4796dd320eb29504cd7`
+- Info.plist `f5270dc828d8d6ce884d49ada630b5e829ffa9cf8209e6ed6621b51d13a88990`
+- InstallAssistant.pkg `274f5c81dcff6f7bc536066418959bab7aeb41848691831996602e689d0840a5`
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
+- MajorOSInfo.pkg `f7967db15a35bf3775f26073bdd2e4b5af3148e8df0d84b129f3e976fc6a8fb6`
+- UpdateBrain.zip `fdc2c78387fc34d1b8b6d82ea3cc6682171d9b9d0fdde4817d1407e6dbb40ba1`
 
 ### macOS Big Sur 11.6.6 (20G624)
 
