@@ -92,7 +92,7 @@ class gibMacOS:
         except:
             return None
         if len(macos_parts) > 1: return macos_parts[1]
-        return 16+macos_parts[0]
+        return 5+macos_parts[0]
 
     def get_macos_versions(self,minos=None,maxos=None,catalog=""):
         if minos is None: minos = self.min_macos
@@ -576,8 +576,8 @@ if __name__ == '__main__':
 
     if args.maxos:
         try:
-            m = int(str(args.maxos).replace("10.",""))
-            g.current_macos = m
+            version = g.macos_to_num(args.maxos)
+            if version: g.current_macos = version
         except:
             pass
     if args.catalog:
