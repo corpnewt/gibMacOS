@@ -254,7 +254,7 @@ class gibMacOS:
     def download_prod(self, prod, dmg = False):
         # Takes a dictonary of details and downloads it
         self.resize()
-        name = "{} - {} {}".format(prod["product"], prod["version"], prod["title"]).replace(":","").strip()
+        name = "{} - {} {} ({})".format(prod["product"], prod["version"], prod["title"], prod["build"]).replace(":","").strip()
         dl_list = []
         for x in prod["packages"]:
             if not x.get("URL",None):
