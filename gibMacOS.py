@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from Scripts import downloader,utils,run,plist
-import os, shutil, time, sys, argparse, re
+import os, shutil, time, sys, argparse, re, json
 
 class gibMacOS:
     def __init__(self):
@@ -20,9 +20,17 @@ class gibMacOS:
             "customer" : "customerseed",
             "developer" : "seed"
         }
-        self.current_macos = 17 # if > 16, assume X-5, else 10.X
+        
+        # Load settings.json if it exists in the Scripts folder
+        self.settings_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"Scripts","settings.json")
+        self.settings = {}
+        if os.path.exists(self.settings_path):
+            try: self.settings = json.load(open(self.settings_path))
+            except: pass
+        
+        self.current_macos = self.settings.get("current_macos",17) # if > 16, assume X-5, else 10.X
         self.min_macos = 5
-        self.print_urls = False
+        self.print_urls = self.settings.get("print_urls",False)
         self.mac_os_names_url = {
             "8" : "mountainlion",
             "7" : "lion",
@@ -45,23 +53,41 @@ class gibMacOS:
             "big sur" : "11",
             "monterey" : "12"
         }
-        self.current_catalog = "publicrelease"
+        self.current_catalog = self.settings.get("current_catalog","publicrelease")
         self.catalog_data    = None
         self.scripts = "Scripts"
         self.plist   = "sucatalog.plist"
         self.saves   = "macOS Downloads"
         self.save_local = False
         self.force_local = False
-        self.find_recovery = False
+        self.find_recovery = self.settings.get("find_recovery",False)
         self.recovery_suffixes = (
             "RecoveryHDUpdate.pkg",
             "RecoveryHDMetaDmg.pkg"
+        )
+        self.settings_to_save = (
+            "current_macos",
+            "current_catalog",
+            "print_urls",
+            "find_recovery"
         )
 
     def resize(self, width=0, height=0):
         width = width if width > self.min_w else self.min_w
         height = height if height > self.min_h else self.min_h
         self.u.resize(width, height)
+
+    def save_settings(self):
+        # Ensure we're using the latest values
+        for setting in self.settings_to_save:
+            self.settings[setting] = getattr(self,setting,None)
+        try:
+            json.dump(self.settings,open(self.settings_path,"w"),indent=2)
+        except Exception as e:
+            self.u.head("Error Saving Settings")
+            print("")
+            print("Failed to save settings to:\n\n{}\n\nWith error:\n\n - {}\n".format(self.settings_path,repr(e)))
+            self.u.grab("Press [enter] to continue...")
 
     def set_prods(self):
         self.resize()
@@ -74,6 +100,9 @@ class gibMacOS:
             print("Please ensure you have a working internet connection.")
             print("")
             self.u.grab("Press [enter] to exit...")
+        self.u.head("Parsing Data")
+        print("")
+        print("Scanning products after catalog download...\n")
         self.mac_prods = self.get_dict_for_prods(self.get_installers())
 
     def set_catalog(self, catalog):
@@ -134,7 +163,7 @@ class gibMacOS:
                     os.chdir(cwd)
             else:
                 print(" - Not found - downloading instead...\n")
-        print("Currently downloading {} catalog from\n\n{}\n".format(self.current_catalog, url))
+        print("Currently downloading {} catalog from:\n\n{}\n".format(self.current_catalog, url))
         try:
             b = self.d.get_bytes(url)
             print("")
@@ -214,14 +243,9 @@ class gibMacOS:
                 smd = {}
             # Populate some info!
             prodd["date"] = plist_dict.get("Products",{}).get(prod,{}).get("PostDate","")
-            prodd["installer"] = False
-            if plist_dict.get("Products",{}).get(prod,{}).get("ExtendedMetaInfo",{}).get("InstallAssistantPackageIdentifiers",{}).get("OSInstall",{}) == "com.apple.mpkg.OSInstall":
-                prodd["installer"] = True
+            prodd["installer"] = plist_dict.get("Products",{}).get(prod,{}).get("ExtendedMetaInfo",{}).get("InstallAssistantPackageIdentifiers",{}).get("OSInstall",{}) == "com.apple.mpkg.OSInstall"
             prodd["time"] = time.mktime(prodd["date"].timetuple()) + prodd["date"].microsecond / 1E6
-            prodd["title"] = smd.get("localization",{}).get("English",{}).get("title","Unknown")
-            prodd["version"] = smd.get("CFBundleShortVersionString","Unknown")
-            if prodd["version"] == " ":
-                prodd["version"] = ""
+            prodd["version"] = smd.get("CFBundleShortVersionString","Unknown").strip()
             # Try to get the description too
             try:
                 desc = smd.get("localization",{}).get("English",{}).get("description","").decode("utf-8")
@@ -237,14 +261,17 @@ class gibMacOS:
                 # Add them all!
                 prodd["packages"] = plist_dict.get("Products",{}).get(prod,{}).get("Packages",[])
             # Get size
-            prodd["size"] = 0
-            for i in prodd["packages"]: prodd["size"] += i["Size"]
-            prodd["size"] = self.d.get_size(prodd["size"])
+            prodd["size"] = self.d.get_size(sum([i["Size"] for i in prodd["packages"]]))
             # Attempt to get the build/version info from the dist
-            b,v,n = self.get_build_version(plist_dict.get("Products",{}).get(prod,{}).get("Distributions",{}))
+            prodd["build"],v,n = self.get_build_version(plist_dict.get("Products",{}).get(prod,{}).get("Distributions",{}))
             prodd["title"] = smd.get("localization",{}).get("English",{}).get("title",n)
-            prodd["build"] = b
-            if not v.lower() == "unknown":
+            print(" -->{}. {} ({}){}".format(
+                str(len(prod_list)+1).rjust(3),
+                prodd["title"],
+                prodd["build"],
+                " - FULL Install" if self.find_recovery and prodd["installer"] else ""
+            ))
+            if v.lower() != "unknown":
                 prodd["version"] = v
             prod_list.append(prodd)
         # Sort by newest
@@ -376,6 +403,7 @@ class gibMacOS:
         try:
             i = int(menu)
             self.current_catalog = list(self.catalog_suffix)[i-1]
+            self.save_settings()
         except:
             # Incorrect - try again
             self.pick_catalog()
@@ -406,6 +434,7 @@ class gibMacOS:
         version = self.macos_to_num(menu)
         if not version: return
         self.current_macos = version
+        self.save_settings()
         # At this point, we should be good
         self.get_catalog_data()
 
@@ -429,7 +458,7 @@ class gibMacOS:
         lines.append("")
         lines.append("M. Change Max-OS Version (Currently {})".format(self.num_to_macos(self.current_macos,for_url=False)))
         lines.append("C. Change Catalog (Currently {})".format(self.current_catalog))
-        lines.append("I. Only Print URLs (Currently {})".format(self.print_urls))
+        lines.append("I. Only Print URLs (Currently {})".format("On" if self.find_recovery else "Off"))
         if sys.platform.lower() == "darwin":
             lines.append("S. Set Current Catalog to SoftwareUpdate Catalog")
             lines.append("L. Clear SoftwareUpdate Catalog")
@@ -455,6 +484,7 @@ class gibMacOS:
             self.pick_catalog()
         elif menu[0].lower() == "i":
             self.print_urls ^= True
+            self.save_settings()
             return
         elif menu[0].lower() == "l" and sys.platform.lower() == "darwin":
             # Clear the software update catalog
@@ -479,11 +509,12 @@ class gibMacOS:
             return
         elif menu[0].lower() == "r":
             self.find_recovery ^= True
+            self.save_settings()
         if menu[0].lower() in ["m","c","r"]:
             self.resize()
             self.u.head("Parsing Data")
             print("")
-            print("Re-scanning products after url preference toggled...")
+            print("Re-scanning products after url preference toggled...\n")
             self.mac_prods = self.get_dict_for_prods(self.get_installers())
             return
         
