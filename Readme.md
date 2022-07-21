@@ -74,6 +74,15 @@ Thanks to:
 - MajorOSInfo.pkg `798f352f7844a8c764ee09ed7c6dbb2aea52b95bb834d209c6b3f6cf43e86c1a`
 - UpdateBrain.zip `d74a0bf96d7897f11d0b1a9b7d101a63d695306a24569441b95b2aca8018829c`
 
+### macOS Big Sur 11.6.8 (20G730)
+
+- BuildManifest.plist `613d34c1e210389b844fff5b5d7a22e98ff8e4cc5463e600746a324100abf562`
+- Info.plist `0bbbbc75dc5bae5f9289363a691a2711ed75059779daa26d7164dea61be235e2`
+- InstallAssistant.pkg `ffb07f4c4fedfcb428941bb4052a5e48c32c3d5d76a8c026dcae110abaeb391c`
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
+- MajorOSInfo.pkg `4fd62de55389ca616364117b2f3ebc7fa4594a34ef9fb97ddb5e13dfca9502a0`
+- UpdateBrain.zip `754a6fc829dd46c072045d8a34d69048fc37f764decf8266024b67cb9b4b852a`
+
 ### macOS Big Sur 11.6.7 (20G630)
 
 - BuildManifest.plist `b3b066500994995c4bb4c788008f8e34c3b9378478bad4796dd320eb29504cd7`
