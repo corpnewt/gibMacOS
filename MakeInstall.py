@@ -42,7 +42,8 @@ class WinUSB:
         self.z_path32 = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Program Files (x86)", "7-Zip", "7z.exe")
         self.recovery_suffixes = (
             "recoveryhdupdate.pkg",
-            "recoveryhdmetadmg.pkg"
+            "recoveryhdmetadmg.pkg",
+            "basesystem.dmg"
         )
         self.dd_bootsector = True
         self.boot0 = "boot0af"
@@ -322,7 +323,7 @@ class WinUSB:
         print("M. Main Menu")
         print("Q. Quit")
         print("")
-        menu = self.u.grab("Please paste the recovery update pkg path to extract:  ")
+        menu = self.u.grab("Please paste the recovery update pkg/dmg path to extract:  ")
         if menu.lower() == "q":
             self.u.custom_quit()
         if menu.lower() == "m":
@@ -358,32 +359,34 @@ class WinUSB:
         temp = tempfile.mkdtemp()
         cwd = os.getcwd()
         os.chdir(temp)
-        # Extract in sections and remove any files we run into
-        print("Extracting Recovery dmg...")
-        out = self.r.run({"args":[self.z_path, "e", "-txar", path, "*.dmg"]})
-        if out[2] != 0:
-            shutil.rmtree(temp,ignore_errors=True)
-            print("An error occurred extracting: {}".format(out[2]))
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
-        print("Extracting BaseSystem.dmg...")
-        # No files to delete here - let's extract the next part
-        out = self.r.run({"args":[self.z_path, "e", "*.dmg", "*/Base*.dmg"]})
-        if out[2] != 0:
-            shutil.rmtree(temp,ignore_errors=True)
-            print("An error occurred extracting: {}".format(out[2]))
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
-        # If we got here - we should delete everything in the temp folder except
-        # for a .dmg that starts with Base
-        del_list = [x for x in os.listdir(temp) if not (x.lower().startswith("base") and x.lower().endswith(".dmg"))]
-        for d in del_list:
-            os.remove(os.path.join(temp, d))
+        print("Located {}...".format(os.path.basename(path)))
+        if not path.lower().endswith(".dmg"):
+            # Extract in sections and remove any files we run into
+            print("Extracting Recovery dmg...")
+            out = self.r.run({"args":[self.z_path, "e", "-txar", path, "*.dmg"]})
+            if out[2] != 0:
+                shutil.rmtree(temp,ignore_errors=True)
+                print("An error occurred extracting: {}".format(out[2]))
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
+            print("Extracting BaseSystem.dmg...")
+            # No files to delete here - let's extract the next part
+            out = self.r.run({"args":[self.z_path, "e", "*.dmg", "*/Base*.dmg"]})
+            if out[2] != 0:
+                shutil.rmtree(temp,ignore_errors=True)
+                print("An error occurred extracting: {}".format(out[2]))
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
+            # If we got here - we should delete everything in the temp folder except
+            # for a .dmg that starts with Base
+            del_list = [x for x in os.listdir(temp) if not (x.lower().startswith("base") and x.lower().endswith(".dmg"))]
+            for d in del_list:
+                os.remove(os.path.join(temp, d))
         # Onto the last command
         print("Extracting hfs...")
-        out = self.r.run({"args":[self.z_path, "e", "-tdmg", "Base*.dmg", "*.hfs"]})
+        out = self.r.run({"args":[self.z_path, "e", "-tdmg", path if path.lower().endswith(".dmg") else "Base*.dmg", "*.hfs"]})
         if out[2] != 0:
             shutil.rmtree(temp,ignore_errors=True)
             print("An error occurred extracting: {}".format(out[2]))
@@ -790,7 +793,7 @@ class WinUSB:
         print("Usage: [drive number][option (only one allowed)] r[Clover revision (optional)]\n  (eg. 1B r5092)")
         print("  Options are as follows with precedence B > E > U > G:")
         print("    B = Only install the boot manager to the drive's first partition.")
-        print("    O = Use OpenCore instead of Clover.")
+        print("    C = Use Clover instead of OpenCore.")
         print("    E = Sets the type of the drive's first partition to EFI.")
         print("    U = Similar to E, but sets the type to Basic Data (useful for editing).")
         print("    G = Format as GPT (default is MBR).")
@@ -806,12 +809,15 @@ class WinUSB:
             self.show_all_disks ^= True
             self.main()
             return
-        only_boot = use_oc = set_efi = unset_efi = use_gpt = False
+        only_boot = set_efi = unset_efi = use_gpt = False
+        use_oc = True
         if "b" in menu.lower():
             only_boot = True
             menu = menu.lower().replace("b","")
-        if "o" in menu.lower():
-            use_oc = True
+        if "c" in menu.lower():
+            use_oc = False
+            menu = menu.lower().replace("c","")
+        if "o" in menu.lower(): # Remove legacy "o" value
             menu = menu.lower().replace("o","")
         if "e" in menu.lower():
             set_efi = True
