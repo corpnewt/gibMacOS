@@ -117,7 +117,8 @@ def load(fp, fmt=None, use_builtin_types=None, dict_type=dict):
         parser.StartElementHandler = p.handleBeginElement
         parser.EndElementHandler = p.handleEndElement
         parser.CharacterDataHandler = p.handleData
-        # We also need to monkey patch this to allow for other dict_types
+        # We also need to monkey patch this to allow for other dict_types, hex int support
+        # proper line output for data errors, and for unicode string decoding
         def begin_dict(attrs):
             d = dict_type()
             p.addObject(d)
@@ -134,9 +135,15 @@ def load(fp, fmt=None, use_builtin_types=None, dict_type=dict):
                 p.addObject(plistlib.Data.fromBase64(p.getData()))
             except Exception as e:
                 raise Exception("Data error at line {}: {}".format(parser.CurrentLineNumber,e))
+        def end_string():
+            d = p.getData()
+            if isinstance(d,unicode):
+                d = d.encode("utf-8")
+            p.addObject(d)
         p.begin_dict = begin_dict
         p.end_integer = end_integer
         p.end_data = end_data
+        p.end_string = end_string
         if isinstance(fp, unicode):
             # Encode unicode -> string; use utf-8 for safety
             fp = fp.encode("utf-8")
@@ -162,8 +169,8 @@ def loads(value, fmt=None, use_builtin_types=None, dict_type=dict):
     try:
         return load(BytesIO(value),fmt=fmt,use_builtin_types=use_builtin_types,dict_type=dict_type)
     except:
-       # Python 3.9 removed use_builtin_types
-       return load(BytesIO(value),fmt=fmt,dict_type=dict_type)
+        # Python 3.9 removed use_builtin_types
+        return load(BytesIO(value),fmt=fmt,dict_type=dict_type)
 def dump(value, fp, fmt=FMT_XML, sort_keys=True, skipkeys=False):
     if _check_py3():
         plistlib.dump(value, fp, fmt=fmt, sort_keys=sort_keys, skipkeys=skipkeys)
