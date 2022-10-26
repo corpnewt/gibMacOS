@@ -11,6 +11,24 @@ Thanks to:
 
 ## Checksum (SHA256)
 
+### macOS Ventura 13.0 (22A380)
+
+- BuildManifest.plist `5a8035586eb5148e5a5276d2dad3c8b612d4ee4d1d415d2b1a3725ba85c3fd70`
+- Info.plist `d7850c4284226b5d53531cdb84fe1b6e13147dc0733a9e4c23e8d5a657b99b4c`
+- InstallAssistant.pkg `2e8c98410159734dc9863324fdf9e8f64fe543947606cf436bc524695b41e00b`
+- InstallInfo.plist `97704a8960b4facceef54397a08fb5d0a456247c3627359215aa2a27df22656c`
+- MajorOSInfo.pkg `98a792abf06a53b8356deb85d37f8fc7fcc415b85a283cbad6bc1932189d07aa`
+- UpdateBrain.zip `f2e47b72130cd578ee8e1d750923712da65711541912b649f46531e90b0dbc34`
+
+### macOS Monterey 12.6.1 (21G217)
+
+- BuildManifest.plist `96ed00916b78fa99c5e07ad59136acca3bd5e0d28c3bbec1c721fecf3325015a`
+- Info.plist `e48f28396809307a7e8187822271399c66165ff9431505f9a060a15e78c5735f`
+- InstallAssistant.pkg `1f5b2198f51bf08cdf19279e650105d78029dc84c79997c4fd957c0ee50b141f`
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
+- MajorOSInfo.pkg `330a3fbd165672ffe17026b9d914b8581624c6d62390c56e7e071b68d83a9b99`
+- UpdateBrain.zip `35afd4807b941a15637c287e6b459af8d24b92fc0d0a274d3531ebe9cadab3f9`
+
 ### macOS Monterey 12.6 (21G115)
 
 - BuildManifest.plist `db2c7bf93d9bc1950779c4bd1748e64a235bbdb03c6153293dcdc86588150b83`
@@ -101,7 +119,16 @@ Thanks to:
 - MajorOSInfo.pkg `798f352f7844a8c764ee09ed7c6dbb2aea52b95bb834d209c6b3f6cf43e86c1a`
 - UpdateBrain.zip `d74a0bf96d7897f11d0b1a9b7d101a63d695306a24569441b95b2aca8018829c`
 
-## macOS Big Sur 11.6.8 (20G730)
+### macOS Big Sur 11.7.1 (20G918)
+
+- BuildManifest.plist `157d9d672888c58fdca1f5bdab6fadd82ff4c5a3ece653753255f8a3fef603de`
+- Info.plist `4c617d99ce398ace2f2c1cd77cc6366193415afbe10f2c78723f7e08dfbbdf5b`
+- InstallAssistant.pkg `ccb23777781d826c6ff301dc6d00dac373ae41d019dd041f6b250490b55ff165`
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
+- MajorOSInfo.pkg `06043ce37ab3c0a4fdf5d92a9af597bd2052f805965a7039fa04db099ed3bdc5`
+- UpdateBrain.zip `7d6c12be6898de1985b41259965d0197f810b44958648c359754d957433d1b5d`
+
+### macOS Big Sur 11.6.8 (20G730)
 
 - BuildManifest.plist `2c13cf7a785f826ae38a499aedebac69b935772b018f8d926295140a5dcde200`
 - Info.plist `9413a7100725a0bb9b84128840d99eb9e6c02643f3343ba72e6e7be4ee26cfe1`
