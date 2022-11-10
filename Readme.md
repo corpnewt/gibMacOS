@@ -11,6 +11,15 @@ Thanks to:
 
 ## Checksum (SHA256)
 
+### macOS Ventura 13.0.1 (22A400)
+
+- BuildManifest.plist `7f0a27f7f3f625b6f5314b438de1b04dda1fbdfcd84d1c10486bc49b36f76b46`
+- Info.plist `ed666b9e143647d1d3e42ca50e529a975f00361e401e24e2b84ce23013071736`
+- InstallAssistant.pkg `12f01ce11db0d4cc9526d1bcbc55275bfacceea443bab215747ae51239960c5e`
+- InstallInfo.plist `97704a8960b4facceef54397a08fb5d0a456247c3627359215aa2a27df22656c`
+- MajorOSInfo.pkg `35b794cf6d5772ff2d350e2ee7cc6ca1e26c8de908e624d4c3233ada8e7f21f5`
+- UpdateBrain.zip `757d72224b98eb901bf18f671d722ad9bc8a60ed5603e578e50197b7b8c2e019`
+
 ### macOS Ventura 13.0 (22A380)
 
 - BuildManifest.plist `5a8035586eb5148e5a5276d2dad3c8b612d4ee4d1d415d2b1a3725ba85c3fd70`
