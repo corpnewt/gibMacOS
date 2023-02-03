@@ -11,6 +11,15 @@ Thanks to:
 
 ## Checksum (SHA256)
 
+### macOS Ventura 13.2 (22D49)
+
+- BuildManifest.plist `516ddc2fad07cb63e1feddd8cfe244260398694f8ccc76855787efedb6ef7bec`
+- Info.plist `4413ad02407ee407aca72d2043d629ab5bec146d42d461eb9bd83ff39c9a35a8`
+- InstallAssistant.pkg `efceabce87325cb7ed9faf977c5addee95b1f6e55d10a950823eab0a2db141e0`
+- InstallInfo.plist `97704a8960b4facceef54397a08fb5d0a456247c3627359215aa2a27df22656c`
+- MajorOSInfo.pkg `80b29e17daa1de0c866336c235b3ec3a2730e977d98716e7ba340cc8d1cc5ec0`
+- UpdateBrain.zip `d1a9dedbb55931a455a58a5a20525e8a2e8c9a0368d84602e67ec8cde2f2333c`
+
 ### macOS Ventura 13.1 (22C65)
 
 - BuildManifest.plist `7b96d60f256b534376c7038a9619859dc853db662608093d20c1f8b595fd16a1`
@@ -37,6 +46,15 @@ Thanks to:
 - InstallInfo.plist `97704a8960b4facceef54397a08fb5d0a456247c3627359215aa2a27df22656c`
 - MajorOSInfo.pkg `98a792abf06a53b8356deb85d37f8fc7fcc415b85a283cbad6bc1932189d07aa`
 - UpdateBrain.zip `f2e47b72130cd578ee8e1d750923712da65711541912b649f46531e90b0dbc34`
+
+### macOS Monterey 12.6.3 (21G419)
+
+- BuildManifest.plist `fcf0374fc85f10efde811e81b9a815e9ef7e3b1c67e6b1a5ee54681547c88166`
+- Info.plist `829a81ca3cddcfe3d21ebba29efd0dd24f5d18fe9a5bd6287343e16e3b1cb06d`
+- InstallAssistant.pkg `038eb42011db8f078655b7d069a30a3d449c50ed0e9fdfe117ff71dfaf51b9b7`
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
+- MajorOSInfo.pkg `256571bc363fba1c9ebe29c5e9580159c1b72eb9389558979039339720ccad2d`
+- UpdateBrain.zip `1d0e46c42a16bd0ce0934eeeff533786267b812c501b281720fe30e5334424cd`
 
 ### macOS Monterey 12.6.2 (21G320)
 
@@ -145,6 +163,15 @@ Thanks to:
 - InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
 - MajorOSInfo.pkg `798f352f7844a8c764ee09ed7c6dbb2aea52b95bb834d209c6b3f6cf43e86c1a`
 - UpdateBrain.zip `d74a0bf96d7897f11d0b1a9b7d101a63d695306a24569441b95b2aca8018829c`
+
+### macOS Big Sur 11.7.3 (20G1116)
+
+- BuildManifest.plist `278361ab6b6ab86d6b13799a66553a0c7601dec62c288582c58ecde98996ffcf`
+- Info.plist `54f48870f9d2d7ddac94f345f13e73944513a49077170c9af2b85f348a68eba2`
+- InstallAssistant.pkg `587bf0a99d0ac26fc56ac0b8574453019f1f1bb8ed12aa9e7bcbbe13047d9e0d`
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
+- MajorOSInfo.pkg `bc3bb79710427ee7676f4128c748b5933694951af41ca8cf0cbb361a78ec2c2e`
+- UpdateBrain.zip `dd173dd469648de88ad87cdbabaf3056b1e07eb4e32e18260428d0583b694b3d`
 
 ### macOS Big Sur 11.7.2 (20G1020)
 
