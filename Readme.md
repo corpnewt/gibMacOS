@@ -11,6 +11,15 @@ Thanks to:
 
 ## Checksum (SHA256)
 
+### macOS Ventura 13.2.1 (22D68)
+
+- BuildManifest.plist `e7ee72a5625c7ac5e5ca395bc3c3fcbb611ffc3f32fc37b22b5c66af7fdc220a`
+- Info.plist `4b5f001b00ef9e66d0e58c1fc9ab44ad6f675099929ecd79a1f18db2bafda08d`
+- InstallAssistant.pkg `0cd320d7af2a18108989ca9430865a349e9bb840a148e74634d18fc33bf90a5a`
+- InstallInfo.plist `97704a8960b4facceef54397a08fb5d0a456247c3627359215aa2a27df22656c`
+- MajorOSInfo.pkg `11ce04deff8ce4f27757f94e4a49a6413176bc0efe92ae379b1320629d7ff99b`
+- UpdateBrain.zip `ffce41295f802d5097ba1fbc11f955e616d7efec8e7af380128b918b82bd4918`
+
 ### macOS Ventura 13.2 (22D49)
 
 - BuildManifest.plist `516ddc2fad07cb63e1feddd8cfe244260398694f8ccc76855787efedb6ef7bec`
@@ -163,6 +172,15 @@ Thanks to:
 - InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3`
 - MajorOSInfo.pkg `798f352f7844a8c764ee09ed7c6dbb2aea52b95bb834d209c6b3f6cf43e86c1a`
 - UpdateBrain.zip `d74a0bf96d7897f11d0b1a9b7d101a63d695306a24569441b95b2aca8018829c`
+
+### macOS Big Sur 11.7.4 (20G1120)
+
+- BuildManifest.plist `aa9e495ad32926961a6fd08ae6265b1499e64246722c5e975071104e9f53839e` 
+- Info.plist `71f8c8c15bd80171c1d1bbf84d1432bf7643e3e045526215d16c34f37cf371ff` 
+- InstallAssistant.pkg `f8659d9ded22e704db59f3c9ebd2df87d649169d1af9c1fdbc175254d8fe0b05` 
+- InstallInfo.plist `d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3` 
+- MajorOSInfo.pkg `0733dcf8d79d5649749501220309ab7c6a84a09fe4e6c84136f25c9633d2dd8b` 
+- UpdateBrain.zip `37e8de784f76c7f04c7e3b4537e366628126afe81abadd9d2f6ecc1d2bb6f5b5`
 
 ### macOS Big Sur 11.7.3 (20G1116)
 
