@@ -441,10 +441,10 @@ class gibMacOS:
     def main(self, dmg = False):
         lines = [""]
         lines.append("Available Products:")
-        lines.append("")
+        lines.append(" ")
         if not len(self.mac_prods):
             lines.append("No installers in catalog!")
-            lines.append("")
+            lines.append(" ")
         for num,p in enumerate(self.mac_prods,start=1):
             var1 = "{}. {} {}".format(num, p["title"], p["version"])
             if p["build"].lower() != "unknown":
@@ -455,7 +455,7 @@ class gibMacOS:
                 var2 += " - FULL Install"
             lines.append(var1)
             lines.append(var2)
-        lines.append("")
+        lines.append(" ")
         lines.append("M. Change Max-OS Version (Currently {})".format(self.num_to_macos(self.current_macos,for_url=False)))
         lines.append("C. Change Catalog (Currently {})".format(self.current_catalog))
         lines.append("I. Only Print URLs (Currently {})".format("On" if self.print_urls else "Off"))
@@ -465,7 +465,7 @@ class gibMacOS:
         lines.append("R. Toggle Recovery-Only (Currently {})".format("On" if self.find_recovery else "Off"))
         lines.append("U. Show Catalog URL")
         lines.append("Q. Quit")
-        lines.append("")
+        lines.append(" ")
         self.resize(len(max(lines)), len(lines)+4)
         self.u.head()
         print("\n".join(lines))
