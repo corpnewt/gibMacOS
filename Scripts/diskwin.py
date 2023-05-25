@@ -6,14 +6,80 @@ class Disk:
 
     def __init__(self):
         self.r = run.Run()
-        self.wmic = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Windows", "System32", "wbem", "WMIC.exe")
+        self.wmic = self._get_wmic()
+        if self.wmic and not os.path.exists(self.wmic):
+            self.wmic = None
+        self.disks = {}
         self._update_disks()
+
+    def _get_wmic(self):
+        # Attempt to locate WMIC.exe
+        wmic_list = self.r.run({"args":["where","wmic"]})[0].replace("\r","").split("\n")
+        if wmic_list:
+            return wmic_list[0]
+        return None
 
     def update(self):
         self._update_disks()
 
     def _update_disks(self):
         self.disks = self.get_disks()
+
+    def _get_rows(self, row_list):
+        rows = []
+        last_row = []
+        for row in row_list:
+            if not row.strip(): # Empty
+                if last_row: # Got a row at least - append it and reset
+                    rows.append(last_row)
+                    last_row = []
+                continue # Skip anything else
+            # Not an empty row - let's try to get the info
+            try: last_row.append(" : ".join(row.split(" : ")[1:]))
+            except: pass
+        return rows
+
+    def _get_diskdrive(self):
+        disks = []
+        if self.wmic: # Use WMIC where possible
+            wmic = self.r.run({"args":[self.wmic, "DiskDrive", "get", "DeviceID,Index,Model,Partitions,Size", "/format:csv"]})[0]
+            # Get the rows - but skip the first 2 (empty, headers) and the last 1 (empty again)
+            disks = list(csv.reader(wmic.replace("\r","").split("\n"), delimiter=","))[2:-1]
+            # We need to skip the Node value for each row as well
+            disks = [x[1:] for x in disks]
+        else: # Use PowerShell and parse the info manually
+            ps = self.r.run({"args":["powershell", "-c", "Get-WmiObject -Class Win32_DiskDrive | Format-List -Property DeviceID,Index,Model,Partitions,Size"]})[0]
+            # We need to iterate the rows and add each column manually
+            disks = self._get_rows(ps.replace("\r","").split("\n"))
+        return disks
+
+    def _get_ldtop(self):
+        disks = []
+        if self.wmic: # Use WMIC where possible
+            wmic = self.r.run({"args":[self.wmic, "path", "Win32_LogicalDiskToPartition", "get", "Antecedent,Dependent"]})[0]
+            # Get the rows - but skip the first and last as they're empty
+            disks = wmic.replace("\r","").split("\n")[1:-1]
+        else: # Use PowerShell and parse the info manually
+            ps = self.r.run({"args":["powershell", "-c", "Get-WmiObject -Class Win32_LogicalDiskToPartition | Format-List -Property Antecedent,Dependent"]})[0]
+            # We need to iterate the rows and add each column manually
+            disks = self._get_rows(ps.replace("\r","").split("\n"))
+            # We need to join the values with 2 spaces to match the WMIC output
+            disks = ["  ".join(x) for x in disks]
+        return disks
+
+    def _get_logicaldisk(self):
+        disks = []
+        if self.wmic: # Use WMIC where possible
+            wmic = self.r.run({"args":[self.wmic, "LogicalDisk", "get", "DeviceID,DriveType,FileSystem,Size,VolumeName", "/format:csv"]})[0]
+            # Get the rows - but skip the first 2 (empty, headers) and the last 1 (empty again)
+            disks = list(csv.reader(wmic.replace("\r","").split("\n"), delimiter=","))[2:-1]
+            # We need to skip the Node value for each row as well
+            disks = [x[1:] for x in disks]
+        else: # Use PowerShell and parse the info manually
+            ps = self.r.run({"args":["powershell", "-c", "Get-WmiObject -Class Win32_LogicalDisk | Format-List -Property DeviceID,DriveType,FileSystem,Size,VolumeName"]})[0]
+            # We need to iterate the rows and add each column manually
+            disks = self._get_rows(ps.replace("\r","").split("\n"))
+        return disks
 
     def get_disks(self):
         # We hate windows... all of us.
@@ -25,23 +91,9 @@ class Disk:
         #
         # May you all forgive me...
 
-        disks = self.r.run({"args":[self.wmic, "diskdrive", "get", "deviceid,model,index,size,partitions", "/format:csv"]})[0]
-        csdisk = csv.reader(disks.replace("\r","").split("\n"), delimiter=",")
-        disks = list(csdisk)
-        if not len(disks) > 3:
-            # Not enough info there - csv is like:
-            # 1. Empty row
-            # 2. Headers
-            # 3->X-1. Rest of the info
-            # X. Last empty row
-            return {}
-        # New format is:
-        # Node, Device, Index, Model, Partitions, Size
-        disks = disks[2:-1]
+        disks = self._get_diskdrive()
         p_disks = {}
-        for d in disks:
-            # Skip the Node value
-            ds = d[1:]
+        for ds in disks:
             if len(ds) < 5:
                 continue
             p_disks[ds[1]] = {
@@ -54,20 +106,19 @@ class Disk:
             p_disks[ds[1]]["size"] = int(ds[-1]) if len(ds[-1]) else -1
             p_disks[ds[1]]["partitioncount"] = int(ds[-2]) if len(ds[-2]) else 0
             
-        if not len(p_disks):
+        if not p_disks:
             # Drat, nothing
             return p_disks
-        # Let's find a shitty way to map this biz now
-        shit = self.r.run({"args":[self.wmic, "path", "Win32_LogicalDiskToPartition", "get", "antecedent,dependent"]})[0]
-        shit = shit.replace("\r","").split("\n")[1:]
-        for s in shit:
-            s = s.lower()
+        # Let's find a way to map this biz now
+        ldtop = self._get_ldtop()
+        for l in ldtop:
+            l = l.lower()
             d = p = mp = None
             try:
-                dp = s.split("deviceid=")[1].split('"')[1]
+                dp = l.split("deviceid=")[1].split('"')[1]
+                mp = l.split("deviceid=")[-1].split('"')[1].upper()
                 d = dp.split("disk #")[1].split(",")[0]
                 p = dp.split("partition #")[1]
-                mp = s.split("deviceid=")[2].split('"')[1].upper()
             except:
                 pass
             if any([d, p, mp]):
@@ -77,15 +128,10 @@ class Disk:
                         p_disks[d]["partitions"] = {}
                     p_disks[d]["partitions"][p] = {"letter":mp}
         # Last attempt to do this - let's get the partition names!
-        parts = self.r.run({"args":[self.wmic, "logicaldisk", "get", "deviceid,filesystem,volumename,size,drivetype", "/format:csv"]})[0]
-        cspart = csv.reader(parts.replace("\r","").split("\n"), delimiter=",")
-        parts = list(cspart)
-        if not len(parts) > 2:
+        parts = self._get_logicaldisk()
+        if not parts:
             return p_disks
-        parts = parts[2:-1]
-        for p in parts:
-            # Again, skip the Node value
-            ps = p[1:]
+        for ps in parts:
             if len(ps) < 2:
                 # Need the drive letter and disk type at minimum
                 continue
