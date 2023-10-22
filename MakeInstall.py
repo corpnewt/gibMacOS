@@ -177,12 +177,12 @@ class WinUSB:
         print("")
         return os.path.exists(os.path.join(self.s_path,self.bi_name))
 
-    def get_dl_url_from_json(self,json_data,suffix=".lzma"):
+    def get_dl_url_from_json(self,json_data,suffix=(".lzma",".iso.7z")):
         try: j_list = json.loads(json_data)
         except: return None
         j_list = j_list if isinstance(j_list,list) else [j_list]
         for j in j_list:
-            dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").lower().endswith(suffix.lower())), None)
+            dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").lower().endswith(suffix)), None)
             if dl_link: break
         if not dl_link:
             return None
@@ -192,7 +192,7 @@ class WinUSB:
         # Returns the latest download package and info in a
         # dictionary:  { "url" : dl_url, "name" : name, "info" : update_info }
         # Attempt Dids' repo first - falling back on Clover's official repo as needed
-        for url in (self.dids_url,self.clover_url):
+        for url in (self.clover_url,self.dids_url):
             # Tag is 5098 on Slice's repo, and v2.5k_r5098 on Dids' - accommodate as needed
             search_url = url if clover_version == None else "{}/tags/{}".format(url,clover_version if url == self.clover_url else "v2.{}k_r{}".format(clover_version[0],clover_version))
             print(" - Checking {}".format(search_url))
@@ -204,7 +204,7 @@ class WinUSB:
     def get_oc_dl_info(self):
         json_data = self.dl.get_string(self.oc_url, False)
         if not json_data: print(" --> Not found!")
-        else: return self.get_dl_url_from_json(json_data,"-RELEASE.zip")
+        else: return self.get_dl_url_from_json(json_data,suffix="-RELEASE.zip")
 
     def diskpart_flag(self, disk, as_efi=False):
         # Sets and unsets the GUID needed for a GPT EFI partition ID
@@ -244,7 +244,7 @@ class WinUSB:
         print("")
         self.u.grab("Press [enter] to return...")
 
-    def diskpart_erase(self, disk, gpt=False, clover_version = None):
+    def diskpart_erase(self, disk, gpt=False, clover_version = None, local_file = None):
         # Generate a script that we can pipe to diskpart to erase our disk
         self.u.head("Erasing With DiskPart")
         print("")
@@ -308,9 +308,9 @@ class WinUSB:
         self.d.update()
         print("Relocating disk {}".format(disk["index"]))
         disk = self.d.disks[str(disk["index"])]
-        self.select_package(disk, clover_version)
+        self.select_package(disk, clover_version, local_file=local_file)
 
-    def select_package(self, disk, clover_version = None):
+    def select_package(self, disk, clover_version = None, local_file = None):
         self.u.head("Select Recovery Package")
         print("")
         print("{}. {} - {} ({})".format(
@@ -323,6 +323,7 @@ class WinUSB:
         print("M. Main Menu")
         print("Q. Quit")
         print("")
+        print("(To copy a file's path, shift + right-click in Explorer and select 'Copy as path')\n")
         menu = self.u.grab("Please paste the recovery update pkg/dmg path to extract:  ")
         if menu.lower() == "q":
             self.u.custom_quit()
@@ -406,10 +407,10 @@ class WinUSB:
             print("")
             self.u.grab("Press [enter] to return...")
         else:
-            self.dd_image(disk, os.path.join(temp, hfs), clover_version)
+            self.dd_image(disk, os.path.join(temp, hfs), clover_version, local_file=local_file)
         shutil.rmtree(temp,ignore_errors=True)
 
-    def dd_image(self, disk, image, clover_version = None):
+    def dd_image(self, disk, image, clover_version = None, local_file = None):
         # Let's dd the shit out of our disk
         self.u.head("Copying Image To Drive")
         print("")
@@ -444,25 +445,32 @@ class WinUSB:
             self.u.grab("Press [enter] to return to the main menu...")
             return
         # Install Clover/OC to the target drive
-        if clover_version == "OpenCore": self.install_oc(disk)
-        else: self.install_clover(disk, clover_version)
+        if clover_version == "OpenCore": self.install_oc(disk, local_file=local_file)
+        else: self.install_clover(disk, clover_version, local_file=local_file)
 
-    def install_oc(self, disk):
+    def install_oc(self, disk, local_file = None):
         self.u.head("Installing OpenCore")
         print("")
         print("Gathering info...")
-        o = self.get_oc_dl_info()
-        if o == None:
-            print(" - Error communicating with github!")
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
-        print(" - Got {}".format(o.get("name","Unknown Version")))
-        print("Downloading...")
-        temp = tempfile.mkdtemp()
-        os.chdir(temp)
-        oc_zip = o["name"]
-        self.dl.stream_to_file(o["url"], os.path.join(temp, o["name"]))
+        if not local_file:
+            o = self.get_oc_dl_info()
+            if o == None:
+                print(" - Error communicating with github!")
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
+            print(" - Got {}".format(o.get("name","Unknown Version")))
+            print("Downloading...")
+            temp = tempfile.mkdtemp()
+            os.chdir(temp)
+            self.dl.stream_to_file(o["url"], os.path.join(temp, o["name"]))
+        else:
+            print("Using local file: {}".format(local_file))
+            temp = tempfile.mkdtemp()
+            os.chdir(temp)
+            o = {"name":os.path.basename(local_file)}
+            # Copy to the temp folder
+            shutil.copy(local_file,os.path.join(temp,o["name"]))
         print("") # Empty space to clear the download progress
         if not os.path.exists(os.path.join(temp, o["name"])):
             shutil.rmtree(temp,ignore_errors=True)
@@ -470,6 +478,7 @@ class WinUSB:
             print("")
             self.u.grab("Press [enter] to return...")
             return
+        oc_zip = o["name"]
         # Got a valid file in our temp dir
         print("Extracting {}...".format(oc_zip))
         out = self.r.run({"args":[self.z_path, "x", os.path.join(temp,oc_zip)]})
@@ -560,23 +569,30 @@ class WinUSB:
         print("")
         self.u.grab("Press [enter] to return to the main menu...")
 
-    def install_clover(self, disk, clover_version = None):
+    def install_clover(self, disk, clover_version = None, local_file = None):
         self.u.head("Installing Clover - {}".format("Latest" if not clover_version else "r"+clover_version))
         print("")
         print("Gathering info...")
-        c = self.get_dl_info(clover_version)
-        if c == None:
-            if clover_version == None: print(" - Error communicating with github!")
-            else: print(" - Error gathering info for Clover r{}".format(clover_version))
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
-        print(" - Got {}".format(c.get("name","Unknown Version")))
-        print("Downloading...")
-        temp = tempfile.mkdtemp()
-        os.chdir(temp)
-        clover_lzma = c["name"]
-        self.dl.stream_to_file(c["url"], os.path.join(temp, c["name"]))
+        if not local_file:
+            c = self.get_dl_info(clover_version)
+            if c == None:
+                if clover_version == None: print(" - Error communicating with github!")
+                else: print(" - Error gathering info for Clover r{}".format(clover_version))
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
+            print(" - Got {}".format(c.get("name","Unknown Version")))
+            print("Downloading...")
+            temp = tempfile.mkdtemp()
+            os.chdir(temp)
+            self.dl.stream_to_file(c["url"], os.path.join(temp, c["name"]))
+        else:
+            print("Using local file: {}".format(local_file))
+            temp = tempfile.mkdtemp()
+            os.chdir(temp)
+            c = {"name":os.path.basename(local_file)}
+            # Copy to the temp folder
+            shutil.copy(local_file,os.path.join(temp,c["name"]))
         print("") # Empty space to clear the download progress
         if not os.path.exists(os.path.join(temp, c["name"])):
             shutil.rmtree(temp,ignore_errors=True)
@@ -584,9 +600,10 @@ class WinUSB:
             print("")
             self.u.grab("Press [enter] to return...")
             return
+        clover_archive = c["name"]
         # Got a valid file in our temp dir
-        print("Extracting {}...".format(clover_lzma))
-        out = self.r.run({"args":[self.z_path, "e", os.path.join(temp,clover_lzma)]})
+        print("Extracting {}...".format(clover_archive))
+        out = self.r.run({"args":[self.z_path, "e", os.path.join(temp,clover_archive)]})
         if out[2] != 0:
             shutil.rmtree(temp,ignore_errors=True)
             print(" - An error occurred extracting: {}".format(out[2]))
@@ -595,24 +612,19 @@ class WinUSB:
             return
         # Should result in a .tar file
         clover_tar = next((x for x in os.listdir(temp) if x.lower().endswith(".tar")),None)
-        if not clover_tar:
-            shutil.rmtree(temp,ignore_errors=True)
-            print(" - No .tar archive found - aborting...")
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
-        # Got the .tar archive - get the .iso
-        print("Extracting {}...".format(clover_tar))
-        out = self.r.run({"args":[self.z_path, "e", os.path.join(temp,clover_tar)]})
-        if out[2] != 0:
-            shutil.rmtree(temp,ignore_errors=True)
-            print(" - An error occurred extracting: {}".format(out[2]))
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
+        if clover_tar:
+            # Got a .tar archive - get the .iso
+            print("Extracting {}...".format(clover_tar))
+            out = self.r.run({"args":[self.z_path, "e", os.path.join(temp,clover_tar)]})
+            if out[2] != 0:
+                shutil.rmtree(temp,ignore_errors=True)
+                print(" - An error occurred extracting: {}".format(out[2]))
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
         # Should result in a .iso file
         clover_iso = next((x for x in os.listdir(temp) if x.lower().endswith(".iso")),None)
-        if not clover_tar:
+        if not clover_iso:
             shutil.rmtree(temp,ignore_errors=True)
             print(" - No .iso found - aborting...")
             print("")
@@ -790,7 +802,7 @@ class WinUSB:
         print("")
         print("Q. Quit")
         print("")
-        print("Usage: [drive number][option (only one allowed)] r[Clover revision (optional)]\n  (eg. 1B r5092)")
+        print("Usage: [drive number][options] r[Clover revision (optional)]\n  (eg. 1B C r5092)")
         print("  Options are as follows with precedence B > E > U > G:")
         print("    B = Only install the boot manager to the drive's first partition.")
         print("    C = Use Clover instead of OpenCore.")
@@ -798,6 +810,7 @@ class WinUSB:
         print("    U = Similar to E, but sets the type to Basic Data (useful for editing).")
         print("    G = Format as GPT (default is MBR).")
         print("    D = Used without a drive number, toggles showing all disks (currently {}).".format("ENABLED" if self.show_all_disks else "DISABLED"))
+        print("    L = Provide a local archive for the bootloader - must still use C if Clover")
         print("")
         menu = self.u.grab("Please select a disk or press [enter] with no options to refresh:  ")
         if not len(menu):
@@ -809,7 +822,8 @@ class WinUSB:
             self.show_all_disks ^= True
             self.main()
             return
-        only_boot = set_efi = unset_efi = use_gpt = False
+        only_boot = set_efi = unset_efi = use_gpt = user_provided = False
+        local_file = None
         use_oc = True
         if "b" in menu.lower():
             only_boot = True
@@ -828,6 +842,9 @@ class WinUSB:
         if "g" in menu.lower():
             use_gpt = True
             menu = menu.lower().replace("g","")
+        if "l" in menu.lower():
+            user_provided = True
+            menu = menu.lower().replace("l","")
 
         # Extract Clover version from args if found
         clover_list = [x for x in menu.split() if x.lower().startswith("r") and all(y in "0123456789" for y in x[1:])]
@@ -847,9 +864,40 @@ class WinUSB:
             self.main()
             return
         # Got a disk!
+        if user_provided:
+            # Prompt the user for the target archive
+            while True:
+                self.u.head("Local Archive")
+                print("")
+                if use_oc:
+                    print("NOTE:  OpenCore archives are expected to be .zip!")
+                else:
+                    print("NOTE:  Clover archives are expected to be an ISO packed in either .tar.lzma or .7z!")
+                print("")
+                print("M. Return to the menu")
+                print("Q. Quit")
+                print("")
+                print("(To copy a file's path, shift + right-click in Explorer and select 'Copy as path')\n")
+                l = self.u.grab("Please {} archive path here:  ".format("OpenCore" if use_oc else "Clover"))
+                if not len(l):
+                    continue
+                if l.lower() == "m":
+                    break
+                elif l.lower() == "q":
+                    self.u.custom_quit()
+                l_check = self.u.check_path(l)
+                if not l_check or not l_check.lower().endswith(".zip" if use_oc else (".tar.lzma",".7z")):
+                    continue
+                # Got a valid path that ends with the proper extension
+                local_file = l_check
+                break
+            # Check if we got something
+            if not local_file:
+                self.main()
+                return
         if only_boot:
-            if use_oc: self.install_oc(selected_disk)
-            else: self.install_clover(selected_disk, clover_version)
+            if use_oc: self.install_oc(selected_disk, local_file=local_file)
+            else: self.install_clover(selected_disk, clover_version, local_file=local_file)
         elif set_efi:
             self.diskpart_flag(selected_disk, True)
         elif unset_efi:
@@ -877,7 +925,7 @@ class WinUSB:
                 if yn.lower() == "y":
                     break
             # Got the OK to erase!  Let's format a diskpart script!
-            self.diskpart_erase(selected_disk, use_gpt, clover_version)
+            self.diskpart_erase(selected_disk, use_gpt, clover_version, local_file=local_file)
         self.main()
 
 if __name__ == '__main__':
