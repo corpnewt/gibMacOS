@@ -182,7 +182,7 @@ class WinUSB:
         except: return None
         j_list = j_list if isinstance(j_list,list) else [j_list]
         for j in j_list:
-            dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").lower().endswith(suffix)), None)
+            dl_link = next((x.get("browser_download_url", None) for x in j.get("assets", []) if x.get("browser_download_url", "").endswith(suffix)), None)
             if dl_link: break
         if not dl_link:
             return None
@@ -347,12 +347,12 @@ class WinUSB:
             return
         path = self.u.check_path(menu)
         if not path:
-            self.select_package(disk, clover_version)
+            self.select_package(disk, clover_version, local_file=local_file)
             return
         # Got the package - let's make sure it's named right - just in case
         if os.path.basename(path).lower().endswith(".hfs"):
             # We have an hfs image already - bypass extraction
-            self.dd_image(disk, path, clover_version)
+            self.dd_image(disk, path, clover_version, local_file=local_file)
             return
         # If it's a directory, find the first recovery hit
         if os.path.isdir(path):
@@ -369,7 +369,7 @@ class WinUSB:
             print("Ensure you're passing a proper recovery package.")
             print("")
             self.u.grab("Press [enter] to return to package selection...")
-            self.select_package(disk, clover_version)
+            self.select_package(disk, clover_version, local_file=local_file)
             return
         self.u.head("Extracting Package")
         print("")
@@ -470,7 +470,7 @@ class WinUSB:
         print("Gathering info...")
         if not local_file:
             o = self.get_oc_dl_info()
-            if o == None:
+            if o is None:
                 print(" - Error communicating with github!")
                 print("")
                 self.u.grab("Press [enter] to return...")
@@ -516,7 +516,7 @@ class WinUSB:
         # Some users are having issues with the "partitions" key not populating - possibly a 3rd party disk management soft?
         # Possibly a bad USB?
         # We'll see if the key exists - if not, we'll throw an error.
-        if self.d.disks[str(disk["index"])].get("partitions",None) == None:
+        if self.d.disks[str(disk["index"])].get("partitions",None) is None:
             # No partitions found.
             shutil.rmtree(temp,ignore_errors=True)
             print("No partitions located on disk!")
@@ -524,7 +524,7 @@ class WinUSB:
             self.u.grab("Press [enter] to return...")
             return
         part = self.d.disks[str(disk["index"])]["partitions"].get("0",{}).get("letter",None) # get the first partition's letter
-        if part == None:
+        if part is None:
             shutil.rmtree(temp,ignore_errors=True)
             print("Lost original disk - or formatting failed!")
             print("")
@@ -591,8 +591,8 @@ class WinUSB:
         print("Gathering info...")
         if not local_file:
             c = self.get_dl_info(clover_version)
-            if c == None:
-                if clover_version == None: print(" - Error communicating with github!")
+            if c is None:
+                if clover_version is None: print(" - Error communicating with github!")
                 else: print(" - Error gathering info for Clover r{}".format(clover_version))
                 print("")
                 self.u.grab("Press [enter] to return...")
@@ -686,7 +686,7 @@ class WinUSB:
         # Some users are having issues with the "partitions" key not populating - possibly a 3rd party disk management soft?
         # Possibly a bad USB?
         # We'll see if the key exists - if not, we'll throw an error.
-        if self.d.disks[str(disk["index"])].get("partitions",None) == None:
+        if self.d.disks[str(disk["index"])].get("partitions",None) is None:
             # No partitions found.
             shutil.rmtree(temp,ignore_errors=True)
             print("No partitions located on disk!")
@@ -694,7 +694,7 @@ class WinUSB:
             self.u.grab("Press [enter] to return...")
             return
         part = self.d.disks[str(disk["index"])]["partitions"].get("0",{}).get("letter",None) # get the first partition's letter
-        if part == None:
+        if part is None:
             shutil.rmtree(temp,ignore_errors=True)
             print("Lost original disk - or formatting failed!")
             print("")
@@ -819,14 +819,16 @@ class WinUSB:
         print("Q. Quit")
         print("")
         print("Usage: [drive number][options] r[Clover revision (optional), requires C]\n  (eg. 1B C r5092)")
-        print("  Options are as follows with precedence B > E > U > G:")
+        print("  Options are as follows with precedence B > F > E > U > G:")
         print("    B = Only install the boot manager to the drive's first partition.")
-        print("    C = Use Clover instead of OpenCore.")
+        print("    F = Skip formatting the disk - will install the boot manager to the first")
+        print("        partition, and dd the recovery image to the second.")
         print("    E = Sets the type of the drive's first partition to EFI.")
         print("    U = Similar to E, but sets the type to Basic Data (useful for editing).")
         print("    G = Format as GPT (default is MBR).")
+        print("    C = Use Clover instead of OpenCore.")
+        print("    L = Provide a local archive for the boot manager - must still use C if Clover.")
         print("    D = Used without a drive number, toggles showing all disks (currently {}).".format("ENABLED" if self.show_all_disks else "DISABLED"))
-        print("    L = Provide a local archive for the bootloader - must still use C if Clover")
         print("")
         menu = self.u.grab("Please select a disk or press [enter] with no options to refresh:  ")
         if not len(menu):
@@ -838,7 +840,7 @@ class WinUSB:
             self.show_all_disks ^= True
             self.main()
             return
-        only_boot = set_efi = unset_efi = use_gpt = user_provided = False
+        only_boot = set_efi = unset_efi = use_gpt = user_provided = no_format = False
         local_file = None
         use_oc = True
         if "b" in menu.lower():
@@ -861,6 +863,9 @@ class WinUSB:
         if "l" in menu.lower():
             user_provided = True
             menu = menu.lower().replace("l","")
+        if "f" in menu.lower():
+            no_format = True
+            menu = menu.lower().replace("f","")
 
         # Extract Clover version from args if found
         clover_list = [x for x in menu.split() if x.lower().startswith("r") and all(y in "0123456789" for y in x[1:])]
@@ -914,6 +919,30 @@ class WinUSB:
         if only_boot:
             if use_oc: self.install_oc(selected_disk, local_file=local_file)
             else: self.install_clover(selected_disk, clover_version, local_file=local_file)
+        elif no_format:
+            # Make sure we warn the user that the second partition **NEEDS** to be a RAW
+            # partition for dd to properly work
+            while True:
+                self.u.head("WARNING")
+                print("")
+                print("{}. {} - {} ({})".format(
+                    selected_disk.get("index",-1), 
+                    selected_disk.get("model","Unknown"), 
+                    self.dl.get_size(selected_disk.get("size",-1),strip_zeroes=True),
+                    ["Unknown","No Root Dir","Removable","Local","Network","Disc","RAM Disk"][selected_disk.get("type",0)]
+                    ))
+                print("")
+                print("In order to continue without formatting, the selected disk's first")
+                print("partition MUST be FAT32, and the second MUST be RAW.  If that is not")
+                print("the case, the operation WILL fail.")
+                print("")
+                yn = self.u.grab("Continue? (y/n):  ")
+                if yn.lower() == "n":
+                    self.main()
+                    return
+                if yn.lower() == "y":
+                    break
+            self.select_package(selected_disk, clover_version, local_file=local_file)
         elif set_efi:
             self.diskpart_flag(selected_disk, True)
         elif unset_efi:
