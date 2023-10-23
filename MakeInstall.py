@@ -192,9 +192,25 @@ class WinUSB:
         # Returns the latest download package and info in a
         # dictionary:  { "url" : dl_url, "name" : name, "info" : update_info }
         # Attempt Dids' repo first - falling back on Clover's official repo as needed
-        for url in (self.clover_url,self.dids_url):
-            # Tag is 5098 on Slice's repo, and v2.5k_r5098 on Dids' - accommodate as needed
-            search_url = url if clover_version == None else "{}/tags/{}".format(url,clover_version if url == self.clover_url else "v2.{}k_r{}".format(clover_version[0],clover_version))
+        clover_urls = (self.clover_url,self.dids_url)
+        try:
+            assert int(clover_version) <= 5122 # Check if we're trying to get r5122 or prior
+            # If we didn't throw an exception, we can reverse the order of the URLs to check
+            # Dids' builder first
+            clover_urls = (self.dids_url,self.clover_url)
+        except:
+            pass # Wasn't a proper int, or was above 5122
+        for url in clover_urls:
+            # Tag is e.g. 5098 on Slice's repo, and e.g. v2.5k_r5098 or v5.0_r5xxx on Dids'
+            # accommodate as needed
+            if not clover_version:
+                search_url = url
+            elif url == self.clover_url:
+                # Using CloverHackyColor's repo - set the tag to the version
+                search_url = "{}/tags/{}".format(url,clover_version)
+            else:
+                # Using Dids' clover builder - figure out the prefix based on the version
+                search_url = "{}/tags/v{}_r{}".format(url,"5.0" if clover_version >= "5118" else "2.5k",clover_version)
             print(" - Checking {}".format(search_url))
             json_data = self.dl.get_string(search_url, False)
             if not json_data: print(" --> Not found!")
@@ -802,7 +818,7 @@ class WinUSB:
         print("")
         print("Q. Quit")
         print("")
-        print("Usage: [drive number][options] r[Clover revision (optional)]\n  (eg. 1B C r5092)")
+        print("Usage: [drive number][options] r[Clover revision (optional), requires C]\n  (eg. 1B C r5092)")
         print("  Options are as follows with precedence B > E > U > G:")
         print("    B = Only install the boot manager to the drive's first partition.")
         print("    C = Use Clover instead of OpenCore.")
