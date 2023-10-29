@@ -31,6 +31,7 @@ class WinUSB:
         self.dids_url = "https://api.github.com/repos/dids/clover-builder/releases"
         self.oc_url = "https://api.github.com/repos/acidanthera/OpenCorePkg/releases"
         self.oc_boot = "boot"
+        self.oc_boot_alt = "bootX64"
         self.oc_boot0 = "boot0"
         self.oc_boot1 = "boot1f32"
         # self.oc_boot_url = "https://github.com/acidanthera/OpenCorePkg/raw/master/Utilities/LegacyBoot/"
@@ -506,9 +507,25 @@ class WinUSB:
             return
         # We need to also gather our boot, boot0af, and boot1f32 files
         print("Gathering DUET boot files...")
-        for x in (self.oc_boot,self.oc_boot0,self.oc_boot1):
-            print(" - {}".format(x))
-            self.dl.stream_to_file(self.oc_boot_url + x, os.path.join(temp,x),False)
+        uefi_only = False
+        duet_loc = os.path.join(temp,"Utilities","LegacyBoot")
+        for x in (self.oc_boot,self.oc_boot_alt,self.oc_boot0,self.oc_boot1):
+            # Check the local dir first
+            if os.path.exists(os.path.join(duet_loc,x)):
+                print(" - {}".format(x))
+                # Copy it over
+                target_name = self.oc_boot if x == self.oc_boot_alt else x
+                shutil.copy(os.path.join(duet_loc,x), os.path.join(temp,target_name))
+        missing_list = [x for x in (self.oc_boot,self.oc_boot0,self.oc_boot1) if not os.path.exists(os.path.join(temp,x))]
+        if missing_list:
+            print(" - Missing: {}".format(", ".join(missing_list)))
+            print("Attempting to download...")
+            for x in missing_list:
+                print(" - {}".format(x))
+                self.dl.stream_to_file(self.oc_boot_url + x, os.path.join(temp,x),False)
+            if not all((os.path.exists(os.path.join(temp,x)) for x in missing_list)):
+                print("Could not located all required DUET files - USB will be UEFI ONLY")
+                uefi_only = True
         # At this point, we should have a boot0xx file and an EFI folder in the temp dir
         # We need to udpate the disk list though - to reflect the current file system on part 1
         # of our current disk
@@ -534,50 +551,61 @@ class WinUSB:
         # will be the first partition
         # Let's copy over the EFI folder and then dd the boot0xx file
         print("Copying EFI folder to {}/EFI...".format(part))
+        source_efi = None
+        if os.path.exists(os.path.join(temp,"EFI")):
+            source_efi = os.path.join(temp,"EFI")
+        elif os.path.exists(os.path.join(temp,"X64","EFI")):
+            source_efi = os.path.join(temp,"X64","EFI")
+        if not source_efi:
+            print(" - Source EFI not found!")
+            print("")
+            self.u.grab("Press [enter] to return...")
+            return
         if os.path.exists("{}/EFI".format(part)):
             print(" - EFI exists - removing...")
             shutil.rmtree("{}/EFI".format(part),ignore_errors=True)
             time.sleep(1) # Added because windows is dumb
-        shutil.copytree(os.path.join(temp,"X64","EFI"), "{}/EFI".format(part))
-        # Copy boot over to the root of the EFI volume
-        print("Copying {} to {}/boot...".format(self.oc_boot,part))
-        shutil.copy(os.path.join(temp,self.oc_boot),"{}/boot".format(part))
-        # Use bootice to update the MBR and PBR - always on the first
-        # partition (which is 0 in bootice)
-        print("Updating the MBR with {}...".format(self.oc_boot0))
-        args = [
-            os.path.join(self.s_path,self.bi_name),
-            "/device={}".format(disk.get("index",-1)),
-            "/mbr",
-            "/restore",
-            "/file={}".format(os.path.join(temp,self.oc_boot0)),
-            "/keep_dpt",
-            "/quiet"
-        ]
-        out = self.r.run({"args":args})
-        if out[2] != 0:
-            shutil.rmtree(temp,ignore_errors=True)
-            print(" - An error occurred updating the MBR: {}".format(out[2]))
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
-        print("Updating the PBR with {}...".format(self.oc_boot1))
-        args = [
-            os.path.join(self.s_path,self.bi_name),
-            "/device={}:0".format(disk.get("index",-1)),
-            "/pbr",
-            "/restore",
-            "/file={}".format(os.path.join(temp,self.oc_boot1)),
-            "/keep_bpb",
-            "/quiet"
-        ]
-        out = self.r.run({"args":args})
-        if out[2] != 0:
-            shutil.rmtree(temp,ignore_errors=True)
-            print(" - An error occurred updating the PBR: {}".format(out[2]))
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
+        shutil.copytree(source_efi, "{}/EFI".format(part))
+        if not uefi_only:
+            # Copy boot over to the root of the EFI volume
+            print("Copying {} to {}/boot...".format(self.oc_boot,part))
+            shutil.copy(os.path.join(temp,self.oc_boot),"{}/boot".format(part))
+            # Use bootice to update the MBR and PBR - always on the first
+            # partition (which is 0 in bootice)
+            print("Updating the MBR with {}...".format(self.oc_boot0))
+            args = [
+                os.path.join(self.s_path,self.bi_name),
+                "/device={}".format(disk.get("index",-1)),
+                "/mbr",
+                "/restore",
+                "/file={}".format(os.path.join(temp,self.oc_boot0)),
+                "/keep_dpt",
+                "/quiet"
+            ]
+            out = self.r.run({"args":args})
+            if out[2] != 0:
+                shutil.rmtree(temp,ignore_errors=True)
+                print(" - An error occurred updating the MBR: {}".format(out[2]))
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
+            print("Updating the PBR with {}...".format(self.oc_boot1))
+            args = [
+                os.path.join(self.s_path,self.bi_name),
+                "/device={}:0".format(disk.get("index",-1)),
+                "/pbr",
+                "/restore",
+                "/file={}".format(os.path.join(temp,self.oc_boot1)),
+                "/keep_bpb",
+                "/quiet"
+            ]
+            out = self.r.run({"args":args})
+            if out[2] != 0:
+                shutil.rmtree(temp,ignore_errors=True)
+                print(" - An error occurred updating the PBR: {}".format(out[2]))
+                print("")
+                self.u.grab("Press [enter] to return...")
+                return
         print("Cleaning up...")
         shutil.rmtree(temp,ignore_errors=True)
         print("")
