@@ -44,7 +44,8 @@ class WinUSB:
         self.recovery_suffixes = (
             "recoveryhdupdate.pkg",
             "recoveryhdmetadmg.pkg",
-            "basesystem.dmg"
+            "basesystem.dmg",
+            "recoveryimage.dmg"
         )
         self.dd_bootsector = True
         self.boot0 = "boot0af"
