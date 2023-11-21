@@ -9,8 +9,9 @@ else:
 
 class Utils:
 
-    def __init__(self, name = "Python Script"):
+    def __init__(self, name = "Python Script", interactive = True):
         self.name = name
+        self.interactive = interactive
         # Init our colors before we need to print anything
         cwd = os.getcwd()
         os.chdir(os.path.dirname(os.path.realpath(__file__)))
@@ -138,6 +139,8 @@ class Utils:
         # returning the result
         timeout = kwargs.get("timeout", 0)
         default = kwargs.get("default", None)
+        if not self.interactive:
+            return default
         # If we don't have a timeout - then skip the timed sections
         if timeout <= 0:
             if sys.version_info >= (3, 0):
@@ -170,11 +173,13 @@ class Utils:
             return default
 
     def cls(self):
-    	os.system('cls' if os.name=='nt' else 'clear')
+        if not self.interactive:
+            return
+        os.system('cls' if os.name=='nt' else 'clear')
 
     def cprint(self, message, **kwargs):
         strip_colors = kwargs.get("strip_colors", False)
-        if os.name == "nt":
+        if os.name == "nt" or not self.interactive:
             strip_colors = True
         reset = u"\u001b[0m"
         # Requires sys import
@@ -216,6 +221,9 @@ class Utils:
 
     # Header drawing method
     def head(self, text = None, width = 55):
+        if not self.interactive:
+            print(text)
+            return
         if text == None:
             text = self.name
         self.cls()

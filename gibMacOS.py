@@ -2,10 +2,17 @@
 from Scripts import downloader,utils,run,plist
 import os, shutil, time, sys, argparse, re, json
 
+class ProgramError(Exception):
+    def __init__(self, message, title = "Error"):
+        super().__init__(message)
+        self.title = title
+
+
 class gibMacOS:
-    def __init__(self):
+    def __init__(self, interactive = True):
+        self.interactive = interactive
         self.d = downloader.Downloader()
-        self.u = utils.Utils("gibMacOS")
+        self.u = utils.Utils("gibMacOS", interactive=interactive)
         self.r = run.Run()
         self.min_w = 80
         self.min_h = 24
@@ -73,6 +80,8 @@ class gibMacOS:
         )
 
     def resize(self, width=0, height=0):
+        if not self.interactive:
+            return
         width = width if width > self.min_w else self.min_w
         height = height if height > self.min_h else self.min_h
         self.u.resize(width, height)
@@ -84,22 +93,18 @@ class gibMacOS:
         try:
             json.dump(self.settings,open(self.settings_path,"w"),indent=2)
         except Exception as e:
-            self.u.head("Error Saving Settings")
-            print("")
-            print("Failed to save settings to:\n\n{}\n\nWith error:\n\n - {}\n".format(self.settings_path,repr(e)))
-            self.u.grab("Press [enter] to continue...")
+            raise ProgramError(
+                    "Failed to save settings to:\n\n{}\n\nWith error:\n\n - {}\n".format(self.settings_path,repr(e)),
+                    title="Error Saving Settings")
 
     def set_prods(self):
         self.resize()
         if not self.get_catalog_data(self.save_local):
-            self.u.head("Catalog Data Error")
-            print("")
-            print("The currently selected catalog ({}) was not reachable".format(self.current_catalog))
+            message += "The currently selected catalog ({}) was not reachable\n".format(self.current_catalog)
             if self.save_local:
-                print("and I was unable to locate a valid {} file in the\n{} directory.".format(self.plist, self.scripts))
-            print("Please ensure you have a working internet connection.")
-            print("")
-            self.u.grab("Press [enter] to exit...")
+                message += "and I was unable to locate a valid {} file in the\n{} directory.\n".format(self.plist, self.scripts)
+            message += "Please ensure you have a working internet connection."
+            raise ProgramError(message, title="Catalog Data Error")
         self.u.head("Parsing Data")
         print("")
         print("Scanning products after catalog download...\n")
@@ -297,12 +302,7 @@ class gibMacOS:
             # add it to the list
             dl_list.append(x["URL"])
         if not len(dl_list):
-            self.u.head("Error")
-            print("")
-            print("There were no files to download")
-            print("")
-            self.u.grab("Press [enter] to return...")
-            return
+            raise ProgramError("There were no files to download")
         c = 0
         done = []
         if self.print_urls:
@@ -310,8 +310,9 @@ class gibMacOS:
             print("")
             print("{}:\n".format(name))
             print("\n".join([" - {} \n   --> {}".format(os.path.basename(x), x) for x in dl_list]))
-            print("")
-            self.u.grab("Press [enter] to return...")
+            if self.interactive:
+                print("")
+                self.u.grab("Press [enter] to return...")
             return
         # Only check the dirs if we need to
         cwd = os.getcwd()
@@ -322,6 +323,8 @@ class gibMacOS:
                 print("")
                 print("It looks like you've already downloaded {}".format(name))
                 print("")
+                if not self.interactive:
+                    return
                 menu = self.u.grab("Redownload? (y/n):  ")
                 if not len(menu):
                     continue
@@ -371,7 +374,10 @@ class gibMacOS:
         print("Files saved to:")
         print("  {}".format(os.path.join(os.getcwd(), self.saves, self.current_catalog, name)))
         print("")
-        self.u.grab("Press [enter] to return...")
+        if self.interactive:
+            self.u.grab("Press [enter] to return...")
+        elif len(failed):
+            raise ProgramError("{} files failed to download".format(len(failed)))
 
     def show_catalog_url(self):
         self.resize()
@@ -381,9 +387,9 @@ class gibMacOS:
         print("Max macOS Version: {}".format(self.num_to_macos(self.current_macos,for_url=False)))
         print("")
         print("{}".format(self.build_url()))
-        print("")
-        menu = self.u.grab("Press [enter] to return...")
-        return
+        if self.interactive:
+            print("")
+            self.u.grab("Press [enter] to return...")
 
     def pick_catalog(self):
         self.resize()
@@ -540,8 +546,7 @@ class gibMacOS:
         if device_id:
             prod = next(p for p in prods if device_id.lower() in p["device_ids"])
             if not prod:
-                print("No version found for Device ID '{}'".format(device_id))
-                return
+                raise ProgramError("No version found for Device ID '{}'".format(device_id))
         else:
             prod = prods[0]
         self.download_prod(prod, dmg)
@@ -553,7 +558,7 @@ class gibMacOS:
             if p["product"] == prod:
                 self.download_prod(p, dmg)
                 return
-        print("{} not found".format(prod))
+        raise ProgramError("{} not found".format(prod))
 
     def get_for_version(self, vers, build = None, device_id = None, dmg = False):
         self.u.head("Downloading for {} {}".format(vers, build or ""))
@@ -593,7 +598,7 @@ class gibMacOS:
             if (n in pt) and not len(name_match):
                 self.download_prod(p, dmg)
                 return
-        print("'{}' '{}' not found".format(vers, build))
+        raise ProgramError("'{}' '{}' not found".format(vers, build or ""))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -609,9 +614,10 @@ if __name__ == '__main__':
     parser.add_argument("-m", "--maxos", help="sets the max macOS version to consider when building the url - eg 10.14")
     parser.add_argument("-D", "--device-id", help="use with --version or --latest to search for versions supporting the specified Device ID - eg VMM-x86_64 for any x86_64")
     parser.add_argument("-i", "--print-urls", help="only prints the download URLs, does not actually download them", action="store_true")
+    parser.add_argument("--no-interactive", help="run in non-interactive mode", action="store_true")
     args = parser.parse_args()
 
-    g = gibMacOS()
+    g = gibMacOS(interactive=not args.no_interactive)
     if args.recovery:
         args.dmg = False
         g.find_recovery = args.recovery
@@ -635,18 +641,33 @@ if __name__ == '__main__':
         # Set the catalog
         g.set_catalog(args.catalog)
 
-    # Done setting up pre-requisites
-    g.set_prods()
+    try:
+        # Done setting up pre-requisites
+        g.set_prods()
 
-    if args.latest:
-        g.get_latest(device_id=args.device_id, dmg=args.dmg)
-        exit()
-    if args.product != None:
-        g.get_for_product(args.product, args.dmg)
-        exit()
-    if args.version != None:
-        g.get_for_version(args.version, args.build, device_id=args.device_id, dmg=args.dmg)
-        exit()
-
-    while True:
-        g.main(args.dmg)
+        if args.latest:
+            g.get_latest(device_id=args.device_id, dmg=args.dmg)
+        elif args.product != None:
+            g.get_for_product(args.product, args.dmg)
+        elif args.version != None:
+            g.get_for_version(args.version, args.build, device_id=args.device_id, dmg=args.dmg)
+        elif g.interactive:
+            while True:
+                try:
+                    g.main(args.dmg)
+                except ProgramError as e:
+                    g.u.head(e.title)
+                    print("")
+                    print(str(e))
+                    print("")
+                    g.u.grab("Press [enter] to return...")
+        else:
+            raise ProgramError("No command specified")
+    except ProgramError as e:
+        print(str(e))
+        if g.interactive:
+            print("")
+            g.u.grab("Press [enter] to exit...")
+        else:
+            exit(1)
+    exit(0)
