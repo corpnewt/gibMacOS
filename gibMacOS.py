@@ -9,8 +9,9 @@ class ProgramError(Exception):
 
 
 class gibMacOS:
-    def __init__(self, interactive = True):
+    def __init__(self, interactive = True, download_dir = None):
         self.interactive = interactive
+        self.download_dir = download_dir
         self.d = downloader.Downloader()
         self.u = utils.Utils("gibMacOS", interactive=interactive)
         self.r = run.Run()
@@ -65,7 +66,6 @@ class gibMacOS:
         self.catalog_data    = None
         self.scripts = "Scripts"
         self.plist   = "sucatalog.plist"
-        self.saves   = "macOS Downloads"
         self.save_local = False
         self.force_local = False
         self.find_recovery = self.settings.get("find_recovery",False)
@@ -292,6 +292,7 @@ class gibMacOS:
         # Takes a dictonary of details and downloads it
         self.resize()
         name = "{} - {} {} ({})".format(prod["product"], prod["version"], prod["title"], prod["build"]).replace(":","").strip()
+        download_dir = self.download_dir or os.path.join(os.path.dirname(os.path.realpath(__file__)), "macOS Downloads", self.current_catalog, name)
         dl_list = []
         for x in prod["packages"]:
             if not x.get("URL",None):
@@ -316,9 +317,7 @@ class gibMacOS:
                 self.u.grab("Press [enter] to return...")
             return
         # Only check the dirs if we need to
-        cwd = os.getcwd()
-        os.chdir(os.path.dirname(os.path.realpath(__file__)))
-        if os.path.exists(os.path.join(os.getcwd(), self.saves, self.current_catalog, name)):
+        if self.download_dir is None and os.path.exists(download_dir):
             while True:
                 self.u.head("Already Exists")
                 self.u.info("It looks like you've already downloaded {}\n".format(name))
@@ -332,9 +331,9 @@ class gibMacOS:
                 if menu[0].lower() == "y":
                     break
             # Remove the old copy, then re-download
-            shutil.rmtree(os.path.join(os.getcwd(), self.saves, self.current_catalog, name))
+            shutil.rmtree(download_dir)
         # Make it new
-        os.makedirs(os.path.join(os.getcwd(), self.saves, self.current_catalog, name))
+        os.makedirs(download_dir)
         for x in dl_list:
             c += 1
             self.u.head("Downloading File {} of {}".format(c, len(dl_list)))
@@ -345,7 +344,7 @@ class gibMacOS:
                 self.u.info("NOTE: Only Downloading DMG Files\n")
             self.u.info("Downloading {} for {}...\n".format(os.path.basename(x), name))
             try:
-                self.d.stream_to_file(x, os.path.join(os.getcwd(), self.saves, self.current_catalog, name, os.path.basename(x)))
+                self.d.stream_to_file(x, os.path.join(download_dir, os.path.basename(x)))
                 done.append({"name":os.path.basename(x), "status":True})
             except:
                 done.append({"name":os.path.basename(x), "status":False})
@@ -364,7 +363,7 @@ class gibMacOS:
                 self.u.info("  {}".format(x["name"]))
         else:
             self.u.info("  None")
-        self.u.info("\nFiles saved to:\n  {}\n".format(os.path.join(os.getcwd(), self.saves, self.current_catalog, name)))
+        self.u.info("\nFiles saved to:\n  {}\n".format(download_dir))
         if self.interactive:
             self.u.grab("Press [enter] to return...")
         elif len(failed):
@@ -606,9 +605,10 @@ if __name__ == '__main__':
     parser.add_argument("-i", "--print-urls", help="only prints the download URLs, does not actually download them", action="store_true")
     parser.add_argument("-j", "--print-json", help="only prints the product metadata in JSON, does not actually download it", action="store_true")
     parser.add_argument("--no-interactive", help="run in non-interactive mode", action="store_true")
+    parser.add_argument("-o", "--download-dir", help="overrides directory where the downloaded files are saved")
     args = parser.parse_args()
 
-    g = gibMacOS(interactive=not args.no_interactive)
+    g = gibMacOS(interactive=not args.no_interactive, download_dir=args.download_dir)
     if args.recovery:
         args.dmg = False
         g.find_recovery = args.recovery
