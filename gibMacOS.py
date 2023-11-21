@@ -295,7 +295,7 @@ class gibMacOS:
             print("")
             print("There were no files to download")
             print("")
-            self.u.grab("Press [enter] to return...")
+            self.u.grab("Press [enter] to return...", timeout=3)
             return
         c = 0
         done = []
@@ -305,7 +305,7 @@ class gibMacOS:
             print("{}:\n".format(name))
             print("\n".join([" - {} \n   --> {}".format(os.path.basename(x), x) for x in dl_list]))
             print("")
-            self.u.grab("Press [enter] to return...")
+            self.u.grab("Press [enter] to return...", timeout=3)
             return
         # Only check the dirs if we need to
         cwd = os.getcwd()
@@ -365,7 +365,7 @@ class gibMacOS:
         print("Files saved to:")
         print("  {}".format(os.path.join(os.getcwd(), self.saves, self.current_catalog, name)))
         print("")
-        self.u.grab("Press [enter] to return...")
+        self.u.grab("Press [enter] to return...", timeout=3)
 
     def show_catalog_url(self):
         self.resize()
