@@ -106,7 +106,7 @@ class gibMacOS:
             message += "Please ensure you have a working internet connection."
             raise ProgramError(message, title="Catalog Data Error")
         self.u.head("Parsing Data")
-        print("Scanning products after catalog download...\n")
+        self.u.info("Scanning products after catalog download...\n")
         self.mac_prods = self.get_dict_for_prods(self.get_installers())
 
     def set_catalog(self, catalog):
@@ -151,40 +151,40 @@ class gibMacOS:
         url = self.build_url(catalog=self.current_catalog, version=self.current_macos)
         self.u.head("Downloading Catalog")
         if local:
-            print("Checking locally for {}".format(self.plist))
+            self.u.info("Checking locally for {}".format(self.plist))
             cwd = os.getcwd()
             os.chdir(os.path.dirname(os.path.realpath(__file__)))
             if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.scripts, self.plist)):
-                print(" - Found - loading...")
+                self.u.info(" - Found - loading...")
                 try:
                     with open(os.path.join(os.getcwd(), self.scripts, self.plist), "rb") as f:
                         self.catalog_data = plist.load(f)
                     os.chdir(cwd)
                     return True
                 except:
-                    print(" - Error loading - downloading instead...\n")
+                    self.u.info(" - Error loading - downloading instead...\n")
                     os.chdir(cwd)
             else:
-                print(" - Not found - downloading instead...\n")
-        print("Currently downloading {} catalog from:\n\n{}\n".format(self.current_catalog, url))
+                self.u.info(" - Not found - downloading instead...\n")
+        self.u.info("Currently downloading {} catalog from:\n\n{}\n".format(self.current_catalog, url))
         try:
-            b = self.d.get_bytes(url)
-            print("")
+            b = self.d.get_bytes(url, self.interactive)
+            self.u.info("")
             self.catalog_data = plist.loads(b)
         except:
-            print("Error downloading!")
+            self.u.info("Error downloading!")
             return False
         try:
             # Assume it's valid data - dump it to a local file
             if local or self.force_local:
-                print(" - Saving to {}...".format(self.plist))
+                self.u.info(" - Saving to {}...".format(self.plist))
                 cwd = os.getcwd()
                 os.chdir(os.path.dirname(os.path.realpath(__file__)))
                 with open(os.path.join(os.getcwd(), self.scripts, self.plist), "wb") as f:
                     plist.dump(self.catalog_data, f)
                 os.chdir(cwd)
         except:
-            print(" - Error saving!")
+            self.u.info(" - Error saving!")
             return False
         return True
 
@@ -274,7 +274,7 @@ class gibMacOS:
             # Attempt to get the build/version/name/device-ids info from the dist
             prodd["build"],v,n,prodd["device_ids"] = self.get_build_version(plist_dict.get("Products",{}).get(prod,{}).get("Distributions",{}))
             prodd["title"] = smd.get("localization",{}).get("English",{}).get("title",n)
-            print(" -->{}. {} ({}){}".format(
+            self.u.info(" -->{}. {} ({}){}".format(
                 str(len(prod_list)+1).rjust(3),
                 prodd["title"],
                 prodd["build"],
@@ -317,8 +317,7 @@ class gibMacOS:
         if os.path.exists(os.path.join(os.getcwd(), self.saves, self.current_catalog, name)):
             while True:
                 self.u.head("Already Exists")
-                print("It looks like you've already downloaded {}".format(name))
-                print("")
+                self.u.info("It looks like you've already downloaded {}\n".format(name))
                 if not self.interactive:
                     return
                 menu = self.u.grab("Redownload? (y/n):  ")
@@ -336,13 +335,11 @@ class gibMacOS:
             c += 1
             self.u.head("Downloading File {} of {}".format(c, len(dl_list)))
             if len(done):
-                print("\n".join(["{} --> {}".format(y["name"], "Succeeded" if y["status"] else "Failed") for y in done]))
-                print("")
+                self.u.info("\n".join(["{} --> {}".format(y["name"], "Succeeded" if y["status"] else "Failed") for y in done]))
+                self.u.info("")
             if dmg:
-                print("NOTE: Only Downloading DMG Files")
-                print("")
-            print("Downloading {} for {}...".format(os.path.basename(x), name))
-            print("")
+                self.u.info("NOTE: Only Downloading DMG Files\n")
+            self.u.info("Downloading {} for {}...\n".format(os.path.basename(x), name))
             try:
                 self.d.stream_to_file(x, os.path.join(os.getcwd(), self.saves, self.current_catalog, name, os.path.basename(x)))
                 done.append({"name":os.path.basename(x), "status":True})
@@ -351,23 +348,19 @@ class gibMacOS:
         succeeded = [x for x in done if x["status"]]
         failed    = [x for x in done if not x["status"]]
         self.u.head("Downloaded {} of {}".format(len(succeeded), len(dl_list)))
-        print("Succeeded:")
+        self.u.info("Succeeded:")
         if len(succeeded):
             for x in succeeded:
-                print("  {}".format(x["name"]))
+                self.u.info("  {}".format(x["name"]))
         else:
-            print("  None")
-        print("")
-        print("Failed:")
+            self.u.info("  None")
+        self.u.info("\nFailed:")
         if len(failed):
             for x in failed:
-                print("  {}".format(x["name"]))
+                self.u.info("  {}".format(x["name"]))
         else:
-            print("  None")
-        print("")
-        print("Files saved to:")
-        print("  {}".format(os.path.join(os.getcwd(), self.saves, self.current_catalog, name)))
-        print("")
+            self.u.info("  None")
+        self.u.info("\nFiles saved to:\n  {}\n".format(os.path.join(os.getcwd(), self.saves, self.current_catalog, name)))
         if self.interactive:
             self.u.grab("Press [enter] to return...")
         elif len(failed):
