@@ -239,6 +239,7 @@ class Utils:
             middle = middle[:-di] + "...#"
         print(middle)
         print("#"*width)
+        print("")
 
     def resize(self, width, height):
         print('\033[8;{};{}t'.format(height, width))

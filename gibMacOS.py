@@ -106,7 +106,6 @@ class gibMacOS:
             message += "Please ensure you have a working internet connection."
             raise ProgramError(message, title="Catalog Data Error")
         self.u.head("Parsing Data")
-        print("")
         print("Scanning products after catalog download...\n")
         self.mac_prods = self.get_dict_for_prods(self.get_installers())
 
@@ -151,7 +150,6 @@ class gibMacOS:
         # Gets the data based on our current_catalog
         url = self.build_url(catalog=self.current_catalog, version=self.current_macos)
         self.u.head("Downloading Catalog")
-        print("")
         if local:
             print("Checking locally for {}".format(self.plist))
             cwd = os.getcwd()
@@ -307,7 +305,6 @@ class gibMacOS:
         done = []
         if self.print_urls:
             self.u.head("Download Links")
-            print("")
             print("{}:\n".format(name))
             print("\n".join([" - {} \n   --> {}".format(os.path.basename(x), x) for x in dl_list]))
             if self.interactive:
@@ -320,7 +317,6 @@ class gibMacOS:
         if os.path.exists(os.path.join(os.getcwd(), self.saves, self.current_catalog, name)):
             while True:
                 self.u.head("Already Exists")
-                print("")
                 print("It looks like you've already downloaded {}".format(name))
                 print("")
                 if not self.interactive:
@@ -339,7 +335,6 @@ class gibMacOS:
         for x in dl_list:
             c += 1
             self.u.head("Downloading File {} of {}".format(c, len(dl_list)))
-            print("")
             if len(done):
                 print("\n".join(["{} --> {}".format(y["name"], "Succeeded" if y["status"] else "Failed") for y in done]))
                 print("")
@@ -356,7 +351,6 @@ class gibMacOS:
         succeeded = [x for x in done if x["status"]]
         failed    = [x for x in done if not x["status"]]
         self.u.head("Downloaded {} of {}".format(len(succeeded), len(dl_list)))
-        print("")
         print("Succeeded:")
         if len(succeeded):
             for x in succeeded:
@@ -382,7 +376,6 @@ class gibMacOS:
     def show_catalog_url(self):
         self.resize()
         self.u.head()
-        print("")
         print("Current Catalog:   {}".format(self.current_catalog))
         print("Max macOS Version: {}".format(self.num_to_macos(self.current_macos,for_url=False)))
         print("")
@@ -394,7 +387,6 @@ class gibMacOS:
     def pick_catalog(self):
         self.resize()
         self.u.head("Select SU Catalog")
-        print("")
         count = 0
         for x in self.catalog_suffix:
             count += 1
@@ -427,7 +419,6 @@ class gibMacOS:
     def pick_macos(self):
         self.resize()
         self.u.head("Select Max macOS Version")
-        print("")
         print("Currently set to {}".format(self.num_to_macos(self.current_macos,for_url=False)))
         print("")
         print("M. Main Menu")
@@ -501,7 +492,6 @@ class gibMacOS:
         elif menu[0].lower() == "l" and sys.platform.lower() == "darwin":
             # Clear the software update catalog
             self.u.head("Clearing SU CatalogURL")
-            print("")
             print("sudo softwareupdate --clear-catalog")
             self.r.run({"args":["softwareupdate","--clear-catalog"],"sudo":True})
             print("")
@@ -510,7 +500,6 @@ class gibMacOS:
         elif menu[0].lower() == "s" and sys.platform.lower() == "darwin":
             # Set the software update catalog to our current catalog url
             self.u.head("Setting SU CatalogURL")
-            print("")
             url = self.build_url(catalog=self.current_catalog, version=self.current_macos)
             print("Setting catalog URL to:\n{}".format(url))
             print("")
@@ -525,7 +514,6 @@ class gibMacOS:
         if menu[0].lower() in ["m","c","r"]:
             self.resize()
             self.u.head("Parsing Data")
-            print("")
             print("Re-scanning products after url preference toggled...\n")
             self.mac_prods = self.get_dict_for_prods(self.get_installers())
             return
@@ -541,7 +529,6 @@ class gibMacOS:
 
     def get_latest(self, device_id = None, dmg = False):
         self.u.head("Downloading Latest")
-        print("")
         prods = sorted(self.mac_prods, key=lambda x:x['version'], reverse=True)
         if device_id:
             prod = next(p for p in prods if device_id.lower() in p["device_ids"])
@@ -553,7 +540,6 @@ class gibMacOS:
 
     def get_for_product(self, prod, dmg = False):
         self.u.head("Downloading for {}".format(prod))
-        print("")
         for p in self.mac_prods:
             if p["product"] == prod:
                 self.download_prod(p, dmg)
@@ -562,7 +548,6 @@ class gibMacOS:
 
     def get_for_version(self, vers, build = None, device_id = None, dmg = False):
         self.u.head("Downloading for {} {}".format(vers, build or ""))
-        print("")
         # Map the versions to their names
         v = self.version_names.get(vers.lower(),vers.lower())
         v_dict = {}
@@ -657,7 +642,6 @@ if __name__ == '__main__':
                     g.main(args.dmg)
                 except ProgramError as e:
                     g.u.head(e.title)
-                    print("")
                     print(str(e))
                     print("")
                     g.u.grab("Press [enter] to return...")
