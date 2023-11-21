@@ -541,8 +541,8 @@ class gibMacOS:
                 return
         print("{} not found".format(prod))
 
-    def get_for_version(self, vers, dmg = False):
-        self.u.head("Downloading for {}".format(vers))
+    def get_for_version(self, vers, build = None, dmg = False):
+        self.u.head("Downloading for {} {}".format(vers, build or ""))
         print("")
         # Map the versions to their names
         v = self.version_names.get(vers.lower(),vers.lower())
@@ -551,6 +551,8 @@ class gibMacOS:
             v_dict[self.version_names[n]] = n
         n = v_dict.get(v, v)
         for p in sorted(self.mac_prods, key=lambda x:x['version'], reverse=True):
+            if build and p["build"] != build:
+                continue
             pt = p["title"].lower()
             pv = p["version"].lower()
             # Need to compare verisons - n = name, v = version
@@ -575,11 +577,11 @@ class gibMacOS:
             if (n in pt) and not len(name_match):
                 self.download_prod(p, dmg)
                 return
-        print("'{}' not found".format(vers))
+        print("'{}' '{}' not found".format(vers, build))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-l", "--latest", help="downloads the version available in the current catalog (overrides --version and --product)", action="store_true")
+    parser.add_argument("-l", "--latest", help="downloads the version available in the current catalog (overrides --build, --version and --product)", action="store_true")
     parser.add_argument("-r", "--recovery", help="looks for RecoveryHDUpdate.pkg and RecoveryHDMetaDmg.pkg in lieu of com.apple.mpkg.OSInstall (overrides --dmg)", action="store_true")
     parser.add_argument("-d", "--dmg", help="downloads only the .dmg files", action="store_true")
     parser.add_argument("-s", "--savelocal", help="uses a locally saved sucatalog.plist if exists", action="store_true")
@@ -587,6 +589,7 @@ if __name__ == '__main__':
     parser.add_argument("-c", "--catalog", help="sets the CATALOG to use - publicrelease, public, customer, developer")
     parser.add_argument("-p", "--product", help="sets the product id to search for (overrides --version)")
     parser.add_argument("-v", "--version", help="sets the version of macOS to target - eg '-v 10.14' or '-v Yosemite'")
+    parser.add_argument("-b", "--build", help="sets the build of macOS to target - eg '22G120' (must be used together with --version)")
     parser.add_argument("-m", "--maxos", help="sets the max macOS version to consider when building the url - eg 10.14")
     parser.add_argument("-i", "--print-urls", help="only prints the download URLs, does not actually download them", action="store_true")
     args = parser.parse_args()
@@ -625,7 +628,7 @@ if __name__ == '__main__':
         g.get_for_product(args.product, args.dmg)
         exit()
     if args.version != None:
-        g.get_for_version(args.version, args.dmg)
+        g.get_for_version(args.version, args.build, args.dmg)
         exit()
 
     while True:
