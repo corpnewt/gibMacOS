@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from Scripts import downloader,utils,run,plist
 import os, shutil, time, sys, argparse, re, json
 
