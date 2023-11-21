@@ -38,6 +38,7 @@ class gibMacOS:
         self.current_macos = self.settings.get("current_macos",17) # if > 16, assume X-5, else 10.X
         self.min_macos = 5
         self.print_urls = self.settings.get("print_urls",False)
+        self.print_json = False
         self.mac_os_names_url = {
             "8" : "mountainlion",
             "7" : "lion",
@@ -303,7 +304,10 @@ class gibMacOS:
             raise ProgramError("There were no files to download")
         c = 0
         done = []
-        if self.print_urls:
+        if self.print_json:
+            print(self.product_to_json(prod))
+            return
+        elif self.print_urls:
             self.u.head("Download Links")
             print("{}:\n".format(name))
             print("\n".join([" - {} \n   --> {}".format(os.path.basename(x), x) for x in dl_list]))
@@ -365,6 +369,14 @@ class gibMacOS:
             self.u.grab("Press [enter] to return...")
         elif len(failed):
             raise ProgramError("{} files failed to download".format(len(failed)))
+
+    def product_to_json(self, prod):
+        return json.dumps({
+            **{key: value for key, value in prod.items()
+               if key in ["product", "version", "build", "title", "size", "packages"]},
+            "date": prod["date"].isoformat(),
+            "deviceIds": list(prod["device_ids"]),
+        })
 
     def show_catalog_url(self):
         self.resize()
@@ -592,6 +604,7 @@ if __name__ == '__main__':
     parser.add_argument("-m", "--maxos", help="sets the max macOS version to consider when building the url - eg 10.14")
     parser.add_argument("-D", "--device-id", help="use with --version or --latest to search for versions supporting the specified Device ID - eg VMM-x86_64 for any x86_64")
     parser.add_argument("-i", "--print-urls", help="only prints the download URLs, does not actually download them", action="store_true")
+    parser.add_argument("-j", "--print-json", help="only prints the product metadata in JSON, does not actually download it", action="store_true")
     parser.add_argument("--no-interactive", help="run in non-interactive mode", action="store_true")
     args = parser.parse_args()
 
@@ -608,6 +621,9 @@ if __name__ == '__main__':
 
     if args.print_urls:
         g.print_urls = True
+
+    if args.print_json:
+        g.print_json = True
 
     if args.maxos:
         try:
