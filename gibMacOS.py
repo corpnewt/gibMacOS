@@ -446,7 +446,7 @@ class gibMacOS:
         self.get_catalog_data()
 
     def main(self, dmg = False):
-        lines = [""]
+        lines = []
         lines.append("Available Products:")
         lines.append(" ")
         if not len(self.mac_prods):
@@ -473,7 +473,7 @@ class gibMacOS:
         lines.append("U. Show Catalog URL")
         lines.append("Q. Quit")
         lines.append(" ")
-        self.resize(len(max(lines)), len(lines)+4)
+        self.resize(len(max(lines)), len(lines)+5)
         self.u.head()
         print("\n".join(lines))
         menu = self.u.grab("Please select an option:  ")
