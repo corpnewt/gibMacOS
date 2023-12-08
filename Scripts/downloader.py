@@ -35,7 +35,7 @@ class Downloader:
 
     def open_url(self, url, headers = None):
         # Fall back on the default ua if none provided
-        headers = self.ua if headers == None else headers
+        headers = self.ua if headers is None else headers
         # Wrap up the try/except block so we don't have to do this for each function
         try:
             response = urlopen(Request(url, headers=headers), context=self.ssl_context)
@@ -92,12 +92,12 @@ class Downloader:
 
     def get_string(self, url, progress = True, headers = None, expand_gzip = True):
         response = self.get_bytes(url,progress,headers,expand_gzip)
-        if response == None: return None
+        if response is None: return None
         return self._decode(response)
 
     def get_bytes(self, url, progress = True, headers = None, expand_gzip = True):
         response = self.open_url(url, headers)
-        if response == None: return None
+        if response is None: return None
         bytes_so_far = 0
         try: total_size = int(response.headers['Content-Length'])
         except: total_size = -1
@@ -115,9 +115,9 @@ class Downloader:
         if progress: print("") # Add a newline so our last progress prints completely
         return chunk_so_far
 
-    def stream_to_file(self, url, file_path, progress = True, headers = None):
+    def stream_to_file(self, url, file_path, progress = True, headers = None, ensure_size_if_present = True):
         response = self.open_url(url, headers)
-        if response == None: return None
+        if response is None: return None
         bytes_so_far = 0
         try: total_size = int(response.headers['Content-Length'])
         except: total_size = -1
@@ -129,4 +129,8 @@ class Downloader:
                 if not chunk: break
                 f.write(chunk)
         if progress: print("") # Add a newline so our last progress prints completely
+        if ensure_size_if_present and total_size != -1:
+            # We're verifying size - make sure we got what we asked for
+            if bytes_so_far != total_size:
+                return None # We didn't - imply it failed
         return file_path if os.path.exists(file_path) else None
