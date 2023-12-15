@@ -81,6 +81,20 @@ class buildMacOSInstallApp:
                 f_path = os.path.dirname(os.path.realpath(f_path))
             # Walk the contents of f_path and ensure we have all the needed files
             lower_contents = [y.lower() for y in os.listdir(f_path)]
+            # Check if we got an InstallAssistant.pkg - and if so, just open that
+            if "installassistant.pkg" in lower_contents:
+                self.u.head("InstallAssistant.pkg Found")
+                print("")
+                print("Located InstallAssistant.pkg in the passed folder.\n")
+                print("As of macOS Big Sur (11.x), Apple changed how they distribute the OS files in")
+                print("the software update catalog.\n")
+                print("Double clicking the InstallAssistant.pkg will open it in Installer, which will")
+                print("copy the Install macOS [version].app to your /Applications folder.\n")
+                print("Opening InstallAssistant.pkg...")
+                self.r.run({"args":["open",os.path.join(f_path,"InstallAssistant.pkg")]})
+                print("")
+                self.u.grab("Press [enter] to return...")
+                continue
             missing_list = [x for x in self.target_files if not x.lower() in lower_contents]
             if len(missing_list):
                 self.u.head("Missing Required Files")
