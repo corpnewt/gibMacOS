@@ -28,6 +28,11 @@ set "just_installing=FALSE"
 REM Get the system32 (or equivalent) path
 call :getsyspath "syspath"
 
+if "%~1" == "--install-python" (
+    set "just_installing=TRUE"
+    goto installpy
+)
+
 REM Make sure the syspath exists
 if "!syspath!" == "" (
     if exist "%SYSTEMROOT%\system32\cmd.exe" (
@@ -56,11 +61,6 @@ if "!syspath!" == "" (
         pause > nul
         exit /b 1
     )
-)
-
-if "%~1" == "--install-python" (
-    set "just_installing=TRUE"
-    goto installpy
 )
 
 goto checkscript
