@@ -28,11 +28,6 @@ set "just_installing=FALSE"
 REM Get the system32 (or equivalent) path
 call :getsyspath "syspath"
 
-if "%~1" == "--install-python" (
-    set "just_installing=TRUE"
-    goto installpy
-)
-
 REM Make sure the syspath exists
 if "!syspath!" == "" (
     if exist "%SYSTEMROOT%\system32\cmd.exe" (
@@ -63,6 +58,11 @@ if "!syspath!" == "" (
     )
 )
 
+if "%~1" == "--install-python" (
+    set "just_installing=TRUE"
+    goto installpy
+)
+
 goto checkscript
 
 :checkscript
@@ -85,83 +85,6 @@ if not exist "!thisDir!\!script_name!" (
     exit /b 1
 )
 goto checkpy
-
-:getsyspath <variable_name>
-REM Helper method to return a valid path to cmd.exe, reg.exe, and where.exe by
-REM walking the ComSpec var - will also repair it in memory if need be
-REM Strip double semi-colons
-call :undouble "temppath" "%ComSpec%" ";"
-
-REM Dirty hack to leverage the "line feed" approach - there are some odd side
-REM effects with this.  Do not use this variable name in comments near this
-REM line - as it seems to behave erradically.
-(set LF=^
-%=this line is empty=%
-)
-REM Replace instances of semi-colons with a line feed and wrap
-REM in parenthesis to work around some strange batch behavior
-set "testpath=%temppath:;=!LF!%"
-
-REM Let's walk each path and test if cmd.exe, reg.exe, and where.exe exist there
-set /a found=0
-for /f "tokens=* delims=" %%i in ("!testpath!") do (
-    REM Only continue if we haven't found it yet
-    if not "%%i" == "" (
-        if !found! lss 1 (
-            set "checkpath=%%i"
-            REM Remove "cmd.exe" from the end if it exists
-            if /i "!checkpath:~-7!" == "cmd.exe" (
-                set "checkpath=!checkpath:~0,-7!"
-            )
-            REM Pad the end with a backslash if needed
-            if not "!checkpath:~-1!" == "\" (
-                set "checkpath=!checkpath!\"
-            )
-            REM Let's see if cmd, reg, and where exist there - and set it if so
-            if EXIST "!checkpath!cmd.exe" (
-                if EXIST "!checkpath!reg.exe" (
-                    if EXIST "!checkpath!where.exe" (
-                        set /a found=1
-                        set "ComSpec=!checkpath!cmd.exe"
-                        set "%~1=!checkpath!"
-                    )
-                )
-            )
-        )
-    )
-)
-goto :EOF
-
-:updatepath
-set "spath="
-set "upath="
-for /f "USEBACKQ tokens=2* delims= " %%i in (`!syspath!reg.exe query "HKCU\Environment" /v "Path" 2^> nul`) do ( if not "%%j" == "" set "upath=%%j" )
-for /f "USEBACKQ tokens=2* delims= " %%i in (`!syspath!reg.exe query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "Path" 2^> nul`) do ( if not "%%j" == "" set "spath=%%j" )
-if not "%spath%" == "" (
-    REM We got something in the system path
-    set "PATH=%spath%"
-    if not "%upath%" == "" (
-        REM We also have something in the user path
-        set "PATH=%PATH%;%upath%"
-    )
-) else if not "%upath%" == "" (
-    set "PATH=%upath%"
-)
-REM Remove double semicolons from the adjusted PATH
-call :undouble "PATH" "%PATH%" ";"
-goto :EOF
-
-:undouble <string_name> <string_value> <character>
-REM Helper function to strip doubles of a single character out of a string recursively
-set "string_value=%~2"
-:undouble_continue
-set "check=!string_value:%~3%~3=%~3!"
-if not "!check!" == "!string_value!" (
-    set "string_value=!check!"
-    goto :undouble_continue
-)
-set "%~1=!check!"
-goto :EOF
 
 :checkpy
 call :updatepath
@@ -384,6 +307,83 @@ if /i "!pause_on_error!" == "yes" (
         echo.
         echo Press [enter] to exit...
         pause > nul
+    )
+)
+goto :EOF
+
+:undouble <string_name> <string_value> <character>
+REM Helper function to strip doubles of a single character out of a string recursively
+set "string_value=%~2"
+:undouble_continue
+set "check=!string_value:%~3%~3=%~3!"
+if not "!check!" == "!string_value!" (
+    set "string_value=!check!"
+    goto :undouble_continue
+)
+set "%~1=!check!"
+goto :EOF
+
+:updatepath
+set "spath="
+set "upath="
+for /f "USEBACKQ tokens=2* delims= " %%i in (`!syspath!reg.exe query "HKCU\Environment" /v "Path" 2^> nul`) do ( if not "%%j" == "" set "upath=%%j" )
+for /f "USEBACKQ tokens=2* delims= " %%i in (`!syspath!reg.exe query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "Path" 2^> nul`) do ( if not "%%j" == "" set "spath=%%j" )
+if not "%spath%" == "" (
+    REM We got something in the system path
+    set "PATH=%spath%"
+    if not "%upath%" == "" (
+        REM We also have something in the user path
+        set "PATH=%PATH%;%upath%"
+    )
+) else if not "%upath%" == "" (
+    set "PATH=%upath%"
+)
+REM Remove double semicolons from the adjusted PATH
+call :undouble "PATH" "%PATH%" ";"
+goto :EOF
+
+:getsyspath <variable_name>
+REM Helper method to return a valid path to cmd.exe, reg.exe, and where.exe by
+REM walking the ComSpec var - will also repair it in memory if need be
+REM Strip double semi-colons
+call :undouble "temppath" "%ComSpec%" ";"
+
+REM Dirty hack to leverage the "line feed" approach - there are some odd side
+REM effects with this.  Do not use this variable name in comments near this
+REM line - as it seems to behave erradically.
+(set LF=^
+%=this line is empty=%
+)
+REM Replace instances of semi-colons with a line feed and wrap
+REM in parenthesis to work around some strange batch behavior
+set "testpath=%temppath:;=!LF!%"
+
+REM Let's walk each path and test if cmd.exe, reg.exe, and where.exe exist there
+set /a found=0
+for /f "tokens=* delims=" %%i in ("!testpath!") do (
+    REM Only continue if we haven't found it yet
+    if not "%%i" == "" (
+        if !found! lss 1 (
+            set "checkpath=%%i"
+            REM Remove "cmd.exe" from the end if it exists
+            if /i "!checkpath:~-7!" == "cmd.exe" (
+                set "checkpath=!checkpath:~0,-7!"
+            )
+            REM Pad the end with a backslash if needed
+            if not "!checkpath:~-1!" == "\" (
+                set "checkpath=!checkpath!\"
+            )
+            REM Let's see if cmd, reg, and where exist there - and set it if so
+            if EXIST "!checkpath!cmd.exe" (
+                if EXIST "!checkpath!reg.exe" (
+                    if EXIST "!checkpath!where.exe" (
+                        set /a found=1
+                        set "ComSpec=!checkpath!cmd.exe"
+                        set "%~1=!checkpath!"
+                    )
+                )
+            )
+        )
     )
 )
 goto :EOF
