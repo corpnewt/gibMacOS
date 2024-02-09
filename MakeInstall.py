@@ -1,5 +1,5 @@
 from Scripts import utils, diskwin, downloader, run
-import os, sys, tempfile, shutil, zipfile, platform, json, time
+import os, sys, tempfile, shutil, zipfile, platform, json, time, string
 
 class WinUSB:
 
@@ -39,8 +39,6 @@ class WinUSB:
         self.diskpart = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Windows", "System32", "diskpart.exe")
         # From Tim Sutton's brigadier:  https://github.com/timsutton/brigadier/blob/master/brigadier
         self.z_path = None
-        self.z_path64 = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Program Files", "7-Zip", "7z.exe")
-        self.z_path32 = os.path.join(os.environ['SYSTEMDRIVE'] + "\\", "Program Files (x86)", "7-Zip", "7z.exe")
         self.recovery_suffixes = (
             "recoveryhdupdate.pkg",
             "recoveryhdmetadmg.pkg",
@@ -131,9 +129,13 @@ class WinUSB:
         return os.path.exists(os.path.join(self.s_path, self.dd_name))
 
     def check_7z(self):
-        self.z_path = self.z_path64 if os.path.exists(self.z_path64) else self.z_path32 if os.path.exists(self.z_path32) else None
-        if self.z_path:
-            return True
+        all_drives = ["{}:".format(d) for d in string.ascii_uppercase if os.path.exists("{}:".format(d))]
+        for drive in all_drives:
+            z_path64 = os.path.join(drive + "\\", "Program Files", "7-Zip", "7z.exe")
+            z_path32 = os.path.join(drive + "\\", "Program Files (x86)", "7-Zip", "7z.exe")
+            self.z_path = z_path64 if os.path.exists(z_path64) else z_path32 if os.path.exists(z_path32) else None
+            if self.z_path:
+                return True
         print("Didn't locate {} - downloading...".format(self.z_name))
         # Didn't find it - let's do some stupid stuff
         # First we get our json response - or rather, try to, then parse it
@@ -151,6 +153,7 @@ class WinUSB:
         temp = tempfile.mkdtemp()
         dl_file = self.dl.stream_to_file(dl_url, os.path.join(temp, self.z_name))
         if not dl_file: # Didn't download right
+            print("Error downloading 7zip...")
             shutil.rmtree(temp,ignore_errors=True)
             return False
         print("")
@@ -164,7 +167,12 @@ class WinUSB:
             self.u.grab("Press [enter] to exit...")
             exit(1)
         print("")
-        self.z_path = self.z_path64 if os.path.exists(self.z_path64) else self.z_path32 if os.path.exists(self.z_path32) else None
+        for drive in all_drives:
+            z_path64 = os.path.join(drive + "\\", "Program Files", "7-Zip", "7z.exe")
+            z_path32 = os.path.join(drive + "\\", "Program Files (x86)", "7-Zip", "7z.exe")
+            self.z_path = z_path64 if os.path.exists(z_path64) else z_path32 if os.path.exists(z_path32) else None
+            if self.z_path:
+                return True
         return self.z_path and os.path.exists(self.z_path)
 
     def check_bi(self):
