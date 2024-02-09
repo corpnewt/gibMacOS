@@ -91,6 +91,7 @@ call :updatepath
 for /f "USEBACKQ tokens=*" %%x in (`!syspath!where.exe python 2^> nul`) do ( call :checkpyversion "%%x" "py2v" "py2path" "py3v" "py3path" )
 for /f "USEBACKQ tokens=*" %%x in (`!syspath!where.exe python3 2^> nul`) do ( call :checkpyversion "%%x" "py2v" "py2path" "py3v" "py3path" )
 for /f "USEBACKQ tokens=*" %%x in (`!syspath!where.exe py 2^> nul`) do ( call :checkpylauncher "%%x" "py2v" "py2path" "py3v" "py3path" )
+REM Walk our returns to see if we need to install
 if /i "!use_py3!" == "FALSE" (
     set "targetpy=2"
     set "pypath=!py2path!"
