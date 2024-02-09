@@ -1,0 +1,3 @@
+# Ensure all .bat scripts use CRLF line endings
+# This can prevent a number of odd batch issues
+*.bat text eol=crlf
