@@ -131,7 +131,9 @@ class WinUSB:
         return os.path.exists(os.path.join(self.s_path, self.dd_name))
 
     def check_7z(self):
-        self.z_path = self.z_path64 if os.path.exists(self.z_path64) else self.z_path32 if os.path.exists(self.z_path32) else None
+        # Check the PATH var first
+        z_path = self.r.run({"args":["where.exe","7z.exe"]})[0].split("\n")[0].rstrip("\r")
+        self.z_path = next((x for x in (z_path,self.z_path64,self.z_path32) if x and os.path.isfile(x)),None)
         if self.z_path:
             return True
         print("Didn't locate {} - downloading...".format(self.z_name))
@@ -444,7 +446,7 @@ class WinUSB:
         args = [
             os.path.join(self.s_path, self.dd_name),
             "if={}".format(image),
-            "of=\\\\?\\Device\Harddisk{}\Partition2".format(disk.get("index",-1)),
+            "of=\\\\?\\Device\\Harddisk{}\\Partition2".format(disk.get("index",-1)),
             "bs=8M",
             "--progress"
         ]
