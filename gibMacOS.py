@@ -606,11 +606,17 @@ if __name__ == '__main__':
     parser.add_argument("-D", "--device-id", help="use with --version or --latest to search for versions supporting the specified Device ID - eg VMM-x86_64 for any x86_64")
     parser.add_argument("-i", "--print-urls", help="only prints the download URLs, does not actually download them", action="store_true")
     parser.add_argument("-j", "--print-json", help="only prints the product metadata in JSON, does not actually download it", action="store_true")
-    parser.add_argument("--no-interactive", help="run in non-interactive mode", action="store_true")
+    parser.add_argument("--no-interactive", help="run in non-interactive mode (auto-enabled when using --product or --version)", action="store_true")
     parser.add_argument("-o", "--download-dir", help="overrides directory where the downloaded files are saved")
     args = parser.parse_args()
 
-    g = gibMacOS(interactive=not args.no_interactive, download_dir=args.download_dir)
+    if args.build and not (args.latest or args.product or args.version):
+        print("The --build option requires a --version")
+        exit(1)
+
+    interactive = not any((args.no_interactive,args.product,args.version))
+    g = gibMacOS(interactive=interactive, download_dir=args.download_dir)
+
     if args.recovery:
         args.dmg = False
         g.find_recovery = args.recovery
