@@ -59,7 +59,7 @@ set_use_py3_if () {
 get_remote_py_version () {
     local pyurl= py_html= py_vers= py_num="3"
     pyurl="https://www.python.org/downloads/macos/"
-    py_html="$(curl -L $pyurl 2>&1)"
+    py_html="$(curl -L $pyurl --compressed 2>&1)"
     if [ -z "$use_py3" ]; then
         use_py3="TRUE"
     fi
@@ -88,7 +88,7 @@ download_py () {
     echo "Located Version:  $vers"
     echo
     echo "Building download url..."
-    url="$(curl -L https://www.python.org/downloads/release/python-${vers//./}/ 2>&1 | grep -iE "python-$vers-macos.*.pkg\"" | awk -F'"' '{ print $2 }')"
+    url="$(curl -L https://www.python.org/downloads/release/python-${vers//./}/ --compressed 2>&1 | grep -iE "python-$vers-macos.*.pkg\"" | awk -F'"' '{ print $2 }')"
     if [ -z "$url" ]; then
         # Couldn't get the URL - bail
         print_error
