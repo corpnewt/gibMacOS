@@ -225,7 +225,9 @@ echo  # Installing Python #
 echo ###               ###
 echo.
 echo Gathering info from https://www.python.org/downloads/windows/...
-powershell -command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (new-object System.Net.WebClient).DownloadFile('https://www.python.org/downloads/windows/','%TEMP%\pyurl.txt')"
+powershell -command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12;(new-object System.Net.WebClient).DownloadFile('https://www.python.org/downloads/windows/','%TEMP%\pyurl.txt')"
+REM Extract it if it's gzip compressed
+powershell -command "$infile='%TEMP%\pyurl.txt';$outfile='%TEMP%\pyurl.temp';try{$input=New-Object System.IO.FileStream $infile,([IO.FileMode]::Open),([IO.FileAccess]::Read),([IO.FileShare]::Read);$output=New-Object System.IO.FileStream $outfile,([IO.FileMode]::Create),([IO.FileAccess]::Write),([IO.FileShare]::None);$gzipStream=New-Object System.IO.Compression.GzipStream $input,([IO.Compression.CompressionMode]::Decompress);$buffer=New-Object byte[](1024);while($true){$read=$gzipstream.Read($buffer,0,1024);if($read -le 0){break};$output.Write($buffer,0,$read)};$gzipStream.Close();$output.Close();$input.Close();Move-Item -Path $outfile -Destination $infile -Force}catch{}"
 if not exist "%TEMP%\pyurl.txt" (
     if /i "!just_installing!" == "TRUE" (
         echo Failed to get info
@@ -234,17 +236,22 @@ if not exist "%TEMP%\pyurl.txt" (
         goto checkpy
     )
 )
-
 echo Parsing for latest...
 pushd "%TEMP%"
 :: Version detection code slimmed by LussacZheng (https://github.com/corpnewt/gibMacOS/issues/20)
 for /f "tokens=9 delims=< " %%x in ('findstr /i /c:"Latest Python !targetpy! Release" pyurl.txt') do ( set "release=%%x" )
 popd
-
+if "!release!" == "" (
+    if /i "!just_installing!" == "TRUE" (
+        echo Failed to get python version
+        exit /b 1
+    ) else (
+        goto checkpy
+    )
+)
 echo Found Python !release! - Downloading...
 REM Let's delete our txt file now - we no longer need it
 del "%TEMP%\pyurl.txt"
-
 REM At this point - we should have the version number.
 REM We can build the url like so: "https://www.python.org/ftp/python/[version]/python-[version]-amd64.exe"
 set "url=https://www.python.org/ftp/python/!release!/python-!release!-amd64.exe"
