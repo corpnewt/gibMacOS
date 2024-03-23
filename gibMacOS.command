@@ -3,7 +3,7 @@
 # Get the curent directory, the script name
 # and the script name with "py" substituted for the extension.
 args=( "$@" )
-dir="${0%/*}"
+dir="$(cd -- "$(dirname "$0")" >/dev/null 2>&1; pwd -P)"
 script="${0##*/}"
 target="${script%.*}.py"
 
