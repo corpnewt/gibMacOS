@@ -346,7 +346,8 @@ class gibMacOS:
                 self.u.info("NOTE: Only Downloading DMG Files\n")
             self.u.info("Downloading {} for {}...\n".format(os.path.basename(x), name))
             try:
-                self.d.stream_to_file(x, os.path.join(download_dir, os.path.basename(x)))
+                result = self.d.stream_to_file(x, os.path.join(download_dir, os.path.basename(x)))
+                assert result is not None
                 done.append({"name":os.path.basename(x), "status":True})
             except:
                 done.append({"name":os.path.basename(x), "status":False})
