@@ -103,7 +103,7 @@ class gibMacOS:
     def set_prods(self):
         self.resize()
         if not self.get_catalog_data(self.save_local):
-            message += "The currently selected catalog ({}) was not reachable\n".format(self.current_catalog)
+            message = "The currently selected catalog ({}) was not reachable\n".format(self.current_catalog)
             if self.save_local:
                 message += "and I was unable to locate a valid {} file in the\n{} directory.\n".format(self.plist, self.scripts)
             message += "Please ensure you have a working internet connection."
