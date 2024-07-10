@@ -8,6 +8,8 @@ else:
     import urllib2
     from urllib2 import urlopen, Request
 
+TERMINAL_WIDTH = 120 if os.name=="nt" else 80
+
 class Downloader:
 
     def __init__(self,**kwargs):
@@ -78,17 +80,40 @@ class Downloader:
         b = b.rstrip("0") if strip_zeroes else b.ljust(round_to,"0") if round_to > 0 else ""
         return "{:,}{} {}".format(int(a),"" if not b else "."+b,biggest)
 
-    def _progress_hook(self, bytes_so_far, total_size):
+    def _progress_hook(self, bytes_so_far, total_size, packets=None):
+        speed = ""
+        if packets:
+            speed = " | ?? B/s"
+            if len(packets) > 1:
+                # Let's calculate the amount downloaded over how long
+                try:
+                    first,last = packets[0][0],packets[-1][0]
+                    chunks = sum([float(x[1]) for x in packets])
+                    t = last-first
+                    assert t >= 0
+                    speed = " | {}/s".format(self.get_size(1./t*chunks,round_to=1))
+                except:
+                    pass
         if total_size > 0:
             percent = float(bytes_so_far) / total_size
             percent = round(percent*100, 2)
             t_s = self.get_size(total_size)
             try: b_s = self.get_size(bytes_so_far, t_s.split(" ")[1])
             except: b_s = self.get_size(bytes_so_far)
-            sys.stdout.write("\r\033[KDownloaded {} of {} ({:.2f}%)".format(b_s, t_s, percent))
+            perc_str = " {:.2f}%".format(percent)
+            bar_width = (TERMINAL_WIDTH // 3)-len(perc_str)
+            progress = "=" * int(bar_width * (percent/100))
+            sys.stdout.write("\r\033[K{}/{} | {}{}{}{}".format(
+                b_s,
+                t_s,
+                progress,
+                " " * (bar_width-len(progress)),
+                perc_str,
+                speed
+            ))
         else:
             b_s = self.get_size(bytes_so_far)
-            sys.stdout.write("\r\033[KDownloaded {}".format(b_s))
+            sys.stdout.write("\r\033[K{}{}".format(b_s, speed))
 
     def get_string(self, url, progress = True, headers = None, expand_gzip = True):
         response = self.get_bytes(url,progress,headers,expand_gzip)
@@ -102,10 +127,14 @@ class Downloader:
         try: total_size = int(response.headers['Content-Length'])
         except: total_size = -1
         chunk_so_far = b""
+        packets = [] if progress else None
         while True:
             chunk = response.read(self.chunk)
             bytes_so_far += len(chunk)
-            if progress: self._progress_hook(bytes_so_far,total_size)
+            if progress:
+                packets.append((time.time(),len(chunk)))
+                packets = packets[-50:] # Limit to 25 total
+                self._progress_hook(bytes_so_far,total_size,packets=packets)
             if not chunk: break
             chunk_so_far += chunk
         if expand_gzip and response.headers.get("Content-Encoding","unknown").lower() == "gzip":
@@ -121,11 +150,15 @@ class Downloader:
         bytes_so_far = 0
         try: total_size = int(response.headers['Content-Length'])
         except: total_size = -1
+        packets = [] if progress else None
         with open(file_path, 'wb') as f:
             while True:
                 chunk = response.read(self.chunk)
                 bytes_so_far += len(chunk)
-                if progress: self._progress_hook(bytes_so_far,total_size)
+                if progress:
+                    packets.append((time.time(),len(chunk)))
+                    packets = packets[-25:] # Limit to 25 total
+                    self._progress_hook(bytes_so_far,total_size,packets=packets)
                 if not chunk: break
                 f.write(chunk)
         if progress: print("") # Add a newline so our last progress prints completely
