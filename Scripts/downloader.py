@@ -81,7 +81,7 @@ class Downloader:
         return "{:,}{} {}".format(int(a),"" if not b else "."+b,biggest)
 
     def _progress_hook(self, bytes_so_far, total_size, packets=None):
-        speed = ""
+        speed = remaining = ""
         if packets:
             speed = " | ?? B/s"
             if len(packets) > 1:
@@ -91,7 +91,24 @@ class Downloader:
                     chunks = sum([float(x[1]) for x in packets])
                     t = last-first
                     assert t >= 0
-                    speed = " | {}/s".format(self.get_size(1./t*chunks,round_to=1))
+                    bytes_speed = 1. / t * chunks
+                    speed = " | {}/s".format(self.get_size(bytes_speed,round_to=1))
+                    # Get our remaining time
+                    if total_size > 0:
+                        seconds_left = (total_size-bytes_so_far) / bytes_speed
+                        days  = seconds_left // 86400
+                        hours = (seconds_left - (days*86400)) // 3600
+                        mins  = (seconds_left - (days*86400) - (hours*3600)) // 60
+                        secs  = seconds_left - (days*86400) - (hours*3600) - (mins*60)
+                        if days > 99 or bytes_speed == 0:
+                            remaining = " | ?? left"
+                        else:
+                            remaining = " | {}{:02d}:{:02d}:{:02d} left".format(
+                                "{}:".format(int(days)) if days else "",
+                                int(hours),
+                                int(mins),
+                                round(secs)
+                            )
                 except:
                     pass
         if total_size > 0:
@@ -103,13 +120,14 @@ class Downloader:
             perc_str = " {:.2f}%".format(percent)
             bar_width = (TERMINAL_WIDTH // 3)-len(perc_str)
             progress = "=" * int(bar_width * (percent/100))
-            sys.stdout.write("\r\033[K{}/{} | {}{}{}{}".format(
+            sys.stdout.write("\r\033[K{}/{} | {}{}{}{}{}".format(
                 b_s,
                 t_s,
                 progress,
                 " " * (bar_width-len(progress)),
                 perc_str,
-                speed
+                speed,
+                remaining
             ))
         else:
             b_s = self.get_size(bytes_so_far)
@@ -133,7 +151,7 @@ class Downloader:
             bytes_so_far += len(chunk)
             if progress:
                 packets.append((time.time(),len(chunk)))
-                packets = packets[-50:] # Limit to 25 total
+                packets = packets[-1024:]
                 self._progress_hook(bytes_so_far,total_size,packets=packets)
             if not chunk: break
             chunk_so_far += chunk
@@ -157,7 +175,7 @@ class Downloader:
                 bytes_so_far += len(chunk)
                 if progress:
                     packets.append((time.time(),len(chunk)))
-                    packets = packets[-25:] # Limit to 25 total
+                    packets = packets[-1024:]
                     self._progress_hook(bytes_so_far,total_size,packets=packets)
                 if not chunk: break
                 f.write(chunk)
