@@ -222,9 +222,10 @@ class Utils:
     # Header drawing method
     def head(self, text = None, width = 55):
         if not self.interactive:
-            print(text, file=sys.stderr)
+            sys.stderr.write(str(text)+"\n")
+            sys.stderr.flush()
             return
-        if text == None:
+        if text is None:
             text = self.name
         self.cls()
         print("  {}".format("#"*width))
@@ -245,7 +246,8 @@ class Utils:
         if self.interactive:
             print(text)
         else:
-            print(text, file=sys.stderr)
+            sys.stderr.write(str(text)+"\n")
+            sys.stderr.flush()
 
     def resize(self, width, height):
         print('\033[8;{};{}t'.format(height, width))
