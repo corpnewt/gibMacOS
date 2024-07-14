@@ -4,7 +4,7 @@ import os, shutil, time, sys, argparse, re, json
 
 class ProgramError(Exception):
     def __init__(self, message, title = "Error"):
-        super().__init__(message)
+        super(Exception, self).__init__(message)
         self.title = title
 
 
@@ -309,6 +309,9 @@ class gibMacOS:
         done = []
         if self.print_json:
             print(self.product_to_json(prod))
+            if self.interactive:
+                print("")
+                self.u.grab("Press [enter] to return...")
             return
         elif self.print_urls:
             self.u.head("Download Links")
@@ -373,12 +376,13 @@ class gibMacOS:
             raise ProgramError("{} files failed to download".format(len(failed)))
 
     def product_to_json(self, prod):
-        return json.dumps({
-            **{key: value for key, value in prod.items()
-               if key in ["product", "version", "build", "title", "size", "packages"]},
-            "date": prod["date"].isoformat(),
-            "deviceIds": list(prod["device_ids"]),
-        })
+        prod_dict = {}
+        for key in ["product", "version", "build", "title", "size", "packages"]:
+            if key in prod:
+                prod_dict[key] = prod[key]
+        prod_dict["date"] = prod["date"].isoformat()
+        prod_dict["deviceIds"] = list(prod["device_ids"])
+        return json.dumps(prod_dict,indent=2)
 
     def show_catalog_url(self):
         self.resize()
