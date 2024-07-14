@@ -107,7 +107,7 @@ class Downloader:
                                 "{}:".format(int(days)) if days else "",
                                 int(hours),
                                 int(mins),
-                                round(secs)
+                                int(round(secs))
                             )
                 except:
                     pass
