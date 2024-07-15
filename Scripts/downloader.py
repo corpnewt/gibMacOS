@@ -132,6 +132,7 @@ class Downloader:
         else:
             b_s = self.get_size(bytes_so_far)
             sys.stdout.write("\r\033[K{}{}".format(b_s, speed))
+        sys.stdout.flush()
 
     def get_string(self, url, progress = True, headers = None, expand_gzip = True):
         response = self.get_bytes(url,progress,headers,expand_gzip)
