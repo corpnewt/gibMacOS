@@ -46,23 +46,54 @@ def get_size(size, suffix=None, use_1024=False, round_to=2, strip_zeroes=False):
     b = b.rstrip("0") if strip_zeroes else b.ljust(round_to,"0") if round_to > 0 else ""
     return "{:,}{} {}".format(int(a),"" if not b else "."+b,biggest)
 
-def _process_hook(queue, total_size, timeout=5, max_packets=1024):
+def _process_hook(queue, total_size, update_interval=1.0, max_packets=0):
     bytes_so_far = 0
     packets = []
     speed = remaining = ""
+    last_update = time.time()
     while True:
+        # Write our info first so we have *some* status while
+        # waiting for packets
+        if total_size > 0:
+            percent = float(bytes_so_far) / total_size
+            percent = round(percent*100, 2)
+            t_s = get_size(total_size)
+            try:
+                b_s = get_size(bytes_so_far, t_s.split(" ")[1])
+            except:
+                b_s = get_size(bytes_so_far)
+            perc_str = " {:.2f}%".format(percent)
+            bar_width = (TERMINAL_WIDTH // 3)-len(perc_str)
+            progress = "=" * int(bar_width * (percent/100))
+            sys.stdout.write("\r\033[K{}/{} | {}{}{}{}{}".format(
+                b_s,
+                t_s,
+                progress,
+                " " * (bar_width-len(progress)),
+                perc_str,
+                speed,
+                remaining
+            ))
+        else:
+            b_s = get_size(bytes_so_far)
+            sys.stdout.write("\r\033[K{}{}".format(b_s, speed))
+        sys.stdout.flush()
+        # Now we gather the next packet
         try:
-            packet = queue.get(timeout=timeout)
+            packet = queue.get(timeout=update_interval)
             # Packets should be formatted as a tuple of
             # (timestamp, len(bytes_downloaded))
             # If "DONE" is passed, we assume the download
             # finished - and bail
             if packet == "DONE":
+                print("") # Jump to the next line
                 return
-            # Append our packet to the list and ensure our max
-            # is 1024 packets
+            # Append our packet to the list and ensure we're not
+            # beyond our max.
+            # Only check max if it's > 0
             packets.append(packet)
-            packets = packets[-max_packets:]
+            if max_packets > 0:
+                packets = packets[-max_packets:]
             # Increment our bytes so far as well
             bytes_so_far += packet[1]
         except q.Empty:
@@ -71,9 +102,14 @@ def _process_hook(queue, total_size, timeout=5, max_packets=1024):
             packets = []
             speed = " | 0 B/s"
             remaining = " | ?? left" if total_size > 0 else ""
-        # If we have *any* packets, process
+        except KeyboardInterrupt:
+            print("") # Jump to the next line
+            return
+        # If we have packets and it's time for an update, process
         # the info.
-        if packets:
+        update_check = time.time()
+        if packets and update_check - last_update >= update_interval:
+            last_update = update_check # Refresh our update timestamp
             speed = " | ?? B/s"
             if len(packets) > 1:
                 # Let's calculate the amount downloaded over how long
@@ -102,28 +138,8 @@ def _process_hook(queue, total_size, timeout=5, max_packets=1024):
                             )
                 except:
                     pass
-        if total_size > 0:
-            percent = float(bytes_so_far) / total_size
-            percent = round(percent*100, 2)
-            t_s = get_size(total_size)
-            try: b_s = get_size(bytes_so_far, t_s.split(" ")[1])
-            except: b_s = get_size(bytes_so_far)
-            perc_str = " {:.2f}%".format(percent)
-            bar_width = (TERMINAL_WIDTH // 3)-len(perc_str)
-            progress = "=" * int(bar_width * (percent/100))
-            sys.stdout.write("\r\033[K{}/{} | {}{}{}{}{}".format(
-                b_s,
-                t_s,
-                progress,
-                " " * (bar_width-len(progress)),
-                perc_str,
-                speed,
-                remaining
-            ))
-        else:
-            b_s = get_size(bytes_so_far)
-            sys.stdout.write("\r\033[K{}{}".format(b_s, speed))
-        sys.stdout.flush()
+                # Clear the packets so we don't reuse the same ones
+                packets = []
 
 class Downloader:
 
@@ -199,8 +215,6 @@ class Downloader:
             # Finalize the queue and wait
             queue.put("DONE")
             process.join()
-            # Add a newline so our last progress prints completely
-            print("")
         return chunk_so_far
 
     def stream_to_file(self, url, file_path, progress = True, headers = None, ensure_size_if_present = True):
@@ -231,8 +245,6 @@ class Downloader:
             # Finalize the queue and wait
             queue.put("DONE")
             process.join()
-            # Add a newline so our last progress prints completely
-            print("")
         if ensure_size_if_present and total_size != -1:
             # We're verifying size - make sure we got what we asked for
             if bytes_so_far != total_size:
