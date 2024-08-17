@@ -166,6 +166,35 @@ class Downloader:
             return value.decode(encoding,errors)
         return value
 
+    def _update_main_name(self):
+        # Windows running python 2 seems to have issues with multiprocessing
+        # if the case of the main script's name is incorrect:
+        # e.g. Downloader.py vs downloader.py
+        #
+        # To work around this, we try to scrape for the correct case if
+        # possible.
+        try:
+            path = os.path.abspath(sys.modules["__main__"].__file__)
+        except AttributeError as e:
+            # This likely means we're running from the interpreter
+            # directly
+            return None
+        if not os.path.isfile(path):
+            return None
+        # Get the file name and folder path
+        name = os.path.basename(path).lower()
+        fldr = os.path.dirname(path)
+        # Walk the files in the folder until we find our
+        # name - then steal its case and update that path
+        for f in os.listdir(fldr):
+            if f.lower() == name.lower():
+                # Got it
+                new_path = os.path.join(fldr,f)
+                sys.modules["__main__"].__file__ = new_path
+                return new_path
+        # If we got here, it wasn't found
+        return None
+
     def open_url(self, url, headers = None):
         # Fall back on the default ua if none provided
         headers = self.ua if headers is None else headers
@@ -199,6 +228,9 @@ class Downloader:
             # Create the multiprocess and start it
             process = multiprocessing.Process(target=_process_hook,args=(queue,total_size))
             process.daemon = True
+            # Filthy hack for earlier python versions on Windows
+            if os.name == "nt" and hasattr(multiprocessing,"forking"):
+                self._update_main_name()
             process.start()
         while True:
             chunk = response.read(self.chunk)
@@ -231,6 +263,9 @@ class Downloader:
             # Create the multiprocess and start it
             process = multiprocessing.Process(target=_process_hook,args=(queue,total_size))
             process.daemon = True
+            # Filthy hack for earlier python versions on Windows
+            if os.name == "nt" and hasattr(multiprocessing,"forking"):
+                self._update_main_name()
             process.start()
         with open(file_path, 'wb') as f:
             while True:
