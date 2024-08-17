@@ -187,7 +187,7 @@ class Downloader:
         # Walk the files in the folder until we find our
         # name - then steal its case and update that path
         for f in os.listdir(fldr):
-            if f.lower() == name.lower():
+            if f.lower() == name:
                 # Got it
                 new_path = os.path.join(fldr,f)
                 sys.modules["__main__"].__file__ = new_path
