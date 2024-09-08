@@ -302,10 +302,9 @@ class gibMacOS:
             if dmg and not x.get("URL","").lower().endswith(".dmg"):
                 continue
             # add it to the list
-            dl_list.append(x["URL"])
+            dl_list.append(x)
         if not len(dl_list):
             raise ProgramError("There were no files to download")
-        c = 0
         done = []
         if self.print_json:
             print(self.product_to_json(prod))
@@ -316,7 +315,11 @@ class gibMacOS:
         elif self.print_urls:
             self.u.head("Download Links")
             print("{}:\n".format(name))
-            print("\n".join([" - {} \n   --> {}".format(os.path.basename(x), x) for x in dl_list]))
+            print("\n".join([" - {} ({}) \n   --> {}".format(
+                os.path.basename(x["URL"]),
+                self.d.get_size(x["Size"],strip_zeroes=True) if x.get("Size") is not None else "?? MB",
+                x["URL"]
+            ) for x in dl_list]))
             if self.interactive:
                 print("")
                 self.u.grab("Press [enter] to return...")
@@ -339,21 +342,21 @@ class gibMacOS:
             shutil.rmtree(download_dir)
         # Make it new
         os.makedirs(download_dir)
-        for x in dl_list:
-            c += 1
+        for c,x in enumerate(dl_list,start=1):
+            url = x["URL"]
             self.u.head("Downloading File {} of {}".format(c, len(dl_list)))
             if len(done):
                 self.u.info("\n".join(["{} --> {}".format(y["name"], "Succeeded" if y["status"] else "Failed") for y in done]))
                 self.u.info("")
             if dmg:
                 self.u.info("NOTE: Only Downloading DMG Files\n")
-            self.u.info("Downloading {} for {}...\n".format(os.path.basename(x), name))
+            self.u.info("Downloading {} for {}...\n".format(os.path.basename(url), name))
             try:
-                result = self.d.stream_to_file(x, os.path.join(download_dir, os.path.basename(x)))
+                result = self.d.stream_to_file(url, os.path.join(download_dir, os.path.basename(url)))
                 assert result is not None
-                done.append({"name":os.path.basename(x), "status":True})
+                done.append({"name":os.path.basename(url), "status":True})
             except:
-                done.append({"name":os.path.basename(x), "status":False})
+                done.append({"name":os.path.basename(url), "status":False})
         succeeded = [x for x in done if x["status"]]
         failed    = [x for x in done if not x["status"]]
         self.u.head("Downloaded {} of {}".format(len(succeeded), len(dl_list)))
