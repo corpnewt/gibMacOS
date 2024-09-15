@@ -1,6 +1,6 @@
 import subprocess, plistlib, sys, os, time, json, csv
 sys.path.append(os.path.abspath(os.path.dirname(os.path.realpath(__file__))))
-import run
+from Scripts import run
 
 class Disk:
 
