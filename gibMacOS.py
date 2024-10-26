@@ -36,7 +36,7 @@ class gibMacOS:
             try: self.settings = json.load(open(self.settings_path))
             except: pass
         
-        self.current_macos = self.settings.get("current_macos",17) # if > 16, assume X-5, else 10.X
+        self.current_macos = self.settings.get("current_macos",20) # if > 16, assume X-5, else 10.X
         self.min_macos = 5
         self.print_urls = self.settings.get("print_urls",False)
         self.print_json = False
