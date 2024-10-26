@@ -62,7 +62,8 @@ class gibMacOS:
             "big sur" : "11",
             "monterey" : "12",
             "ventura" : "13",
-            "sonoma" : "14"
+            "sonoma" : "14",
+            "sequoia" : "15"
         }
         self.current_catalog = self.settings.get("current_catalog","publicrelease")
         self.catalog_data    = None
