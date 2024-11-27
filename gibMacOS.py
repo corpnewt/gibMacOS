@@ -40,6 +40,7 @@ class gibMacOS:
         self.min_macos = 5
         self.print_urls = self.settings.get("print_urls",False)
         self.print_json = False
+        self.hide_pid = self.settings.get("hide_pid",False)
         self.mac_os_names_url = {
             "8" : "mountainlion",
             "7" : "lion",
@@ -80,7 +81,8 @@ class gibMacOS:
             "current_macos",
             "current_catalog",
             "print_urls",
-            "find_recovery"
+            "find_recovery",
+            "hide_pid"
         )
 
     def resize(self, width=0, height=0):
@@ -464,19 +466,22 @@ class gibMacOS:
             lines.append("No installers in catalog!")
             lines.append(" ")
         for num,p in enumerate(self.mac_prods,start=1):
-            var1 = "{}. {} {}".format(num, p["title"], p["version"])
+            var1 = "{}. {} {}".format(str(num).rjust(2), p["title"], p["version"])
             if p["build"].lower() != "unknown":
                 var1 += " ({})".format(p["build"])
-            var2 = "   - {} - Added {} - {}".format(p["product"], p["date"], p["size"])
+            if not self.hide_pid:
+                var2 = "   - {} - Added {} - {}".format(p["product"], p["date"], p["size"])
             if self.find_recovery and p["installer"]:
                 # Show that it's a full installer
                 var2 += " - FULL Install"
             lines.append(var1)
-            lines.append(var2)
+            if not self.hide_pid:
+                lines.append(var2)
         lines.append(" ")
         lines.append("M. Change Max-OS Version (Currently {})".format(self.num_to_macos(self.current_macos,for_url=False)))
         lines.append("C. Change Catalog (Currently {})".format(self.current_catalog))
         lines.append("I. Only Print URLs (Currently {})".format("On" if self.print_urls else "Off"))
+        lines.append("H. Hide Package IDs and Upload Dates")
         if sys.platform.lower() == "darwin":
             lines.append("S. Set Current Catalog to SoftwareUpdate Catalog")
             lines.append("L. Clear SoftwareUpdate Catalog")
@@ -504,6 +509,9 @@ class gibMacOS:
             self.print_urls ^= True
             self.save_settings()
             return
+        elif menu[0].lower() == "h":
+            self.hide_pid ^= True
+            self.save_settings()
         elif menu[0].lower() == "l" and sys.platform.lower() == "darwin":
             # Clear the software update catalog
             self.u.head("Clearing SU CatalogURL")
