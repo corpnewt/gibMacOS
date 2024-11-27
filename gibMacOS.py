@@ -467,13 +467,17 @@ class gibMacOS:
             lines.append(" ")
         for num,p in enumerate(self.mac_prods,start=1):
             var1 = "{}. {} {}".format(str(num).rjust(2), p["title"], p["version"])
+            var2 = ""
             if p["build"].lower() != "unknown":
                 var1 += " ({})".format(p["build"])
             if not self.hide_pid:
                 var2 = "   - {} - Added {} - {}".format(p["product"], p["date"], p["size"])
             if self.find_recovery and p["installer"]:
                 # Show that it's a full installer
-                var2 += " - FULL Install"
+                if self.hide_pid:
+                    var1 += " - FULL Install"
+                else:
+                    var2 += " - FULL Install"
             lines.append(var1)
             if not self.hide_pid:
                 lines.append(var2)
