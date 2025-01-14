@@ -46,8 +46,7 @@ def get_size(size, suffix=None, use_1024=False, round_to=2, strip_zeroes=False):
     b = b.rstrip("0") if strip_zeroes else b.ljust(round_to,"0") if round_to > 0 else ""
     return "{:,}{} {}".format(int(a),"" if not b else "."+b,biggest)
 
-def _process_hook(queue, total_size, update_interval=1.0, max_packets=0):
-    bytes_so_far = 0
+def _process_hook(queue, total_size, bytes_so_far=0, update_interval=1.0, max_packets=0):
     packets = []
     speed = remaining = ""
     last_update = time.time()
@@ -195,9 +194,18 @@ class Downloader:
         # If we got here, it wasn't found
         return None
 
-    def open_url(self, url, headers = None):
+    def _get_headers(self, headers = None):
         # Fall back on the default ua if none provided
-        headers = self.ua if headers is None else headers
+        target = headers if isinstance(headers,dict) else self.ua
+        new_headers = {}
+        # Shallow copy to prevent changes to the headers
+        # overriding the original
+        for k in target:
+            new_headers[k] = target[k]
+        return new_headers
+
+    def open_url(self, url, headers = None):
+        headers = self._get_headers(headers)
         # Wrap up the try/except block so we don't have to do this for each function
         try:
             response = urlopen(Request(url, headers=headers), context=self.ssl_context)
@@ -226,19 +234,26 @@ class Downloader:
             packets = [] if progress else None
             queue = multiprocessing.Queue()
             # Create the multiprocess and start it
-            process = multiprocessing.Process(target=_process_hook,args=(queue,total_size))
+            process = multiprocessing.Process(
+                target=_process_hook,
+                args=(queue,total_size)
+            )
             process.daemon = True
             # Filthy hack for earlier python versions on Windows
             if os.name == "nt" and hasattr(multiprocessing,"forking"):
                 self._update_main_name()
             process.start()
-        while True:
-            chunk = response.read(self.chunk)
-            if progress:
-                # Add our items to the queue
-                queue.put((time.time(),len(chunk)))
-            if not chunk: break
-            chunk_so_far += chunk
+        try:
+            while True:
+                chunk = response.read(self.chunk)
+                if progress:
+                    # Add our items to the queue
+                    queue.put((time.time(),len(chunk)))
+                if not chunk: break
+                chunk_so_far += chunk
+        finally:
+            # Close the response whenever we're done
+            response.close()
         if expand_gzip and response.headers.get("Content-Encoding","unknown").lower() == "gzip":
             fileobj = BytesIO(chunk_so_far)
             gfile   = gzip.GzipFile(fileobj=fileobj)
@@ -256,26 +271,54 @@ class Downloader:
         try: total_size = int(response.headers['Content-Length'])
         except: total_size = -1
         packets = queue = process = None
+        mode = "wb"
+        if os.path.isfile(file_path) and total_size != -1:
+            # File exists, we're resuming and have a target size.  Check the
+            # local file size.
+            current_size = os.stat(file_path).st_size
+            if current_size == total_size:
+                # File is already complete - return the path
+                return file_path
+            elif current_size < total_size:
+                response.close()
+                # File is not complete - seek to our current size
+                bytes_so_far = current_size
+                mode = "ab" # Append
+                # We also need to try creating a new request
+                # in order to pass our range header
+                new_headers = self._get_headers(headers)
+                # Get the start byte, 0-indexed
+                byte_string = "bytes={}-".format(current_size)
+                new_headers["Range"] = byte_string
+                response = self.open_url(url, new_headers)
+                if response is None: return None
         if progress:
             # Make sure our vars are initialized
             packets = [] if progress else None
             queue = multiprocessing.Queue()
             # Create the multiprocess and start it
-            process = multiprocessing.Process(target=_process_hook,args=(queue,total_size))
+            process = multiprocessing.Process(
+                target=_process_hook,
+                args=(queue,total_size,bytes_so_far)
+            )
             process.daemon = True
             # Filthy hack for earlier python versions on Windows
             if os.name == "nt" and hasattr(multiprocessing,"forking"):
                 self._update_main_name()
             process.start()
-        with open(file_path, 'wb') as f:
-            while True:
-                chunk = response.read(self.chunk)
-                bytes_so_far += len(chunk)
-                if progress:
-                    # Add our items to the queue
-                    queue.put((time.time(),len(chunk)))
-                if not chunk: break
-                f.write(chunk)
+        with open(file_path,mode) as f:
+            try:
+                while True:
+                    chunk = response.read(self.chunk)
+                    bytes_so_far += len(chunk)
+                    if progress:
+                        # Add our items to the queue
+                        queue.put((time.time(),len(chunk)))
+                    if not chunk: break
+                    f.write(chunk)
+            finally:
+                # Close the response whenever we're done
+                response.close()
         if progress:
             # Finalize the queue and wait
             queue.put("DONE")
