@@ -214,11 +214,11 @@ class gibMacOS:
     def get_build_version(self, dist_dict):
         build = version = name = "Unknown"
         try:
-            dist_url = dist_dict.get("English","") if dist_dict.get("English",None) else dist_dict.get("en","")
-            dist_file = self.d.get_bytes(dist_url, False).decode("utf-8")
+            dist_url = dist_dict.get("English",dist_dict.get("en",""))
+            dist_file = self.d.get_string(dist_url,False)
+            assert isinstance(dist_file,str)
         except:
             dist_file = ""
-            pass
         build_search = "macOSProductBuildVersion" if "macOSProductBuildVersion" in dist_file else "BUILD"
         vers_search  = "macOSProductVersion" if "macOSProductVersion" in dist_file else "VERSION"
         try:
@@ -252,7 +252,9 @@ class gibMacOS:
             # Grab the ServerMetadataURL for the passed product key if it exists
             prodd = {"product":prod}
             try:
-                b = self.d.get_bytes(plist_dict.get("Products",{}).get(prod,{}).get("ServerMetadataURL",""), False)
+                url = plist_dict.get("Products",{}).get(prod,{}).get("ServerMetadataURL","")
+                assert url
+                b = self.d.get_bytes(url,False)
                 smd = plist.loads(b)
             except:
                 smd = {}
@@ -331,20 +333,32 @@ class gibMacOS:
         if self.download_dir is None and os.path.exists(download_dir):
             while True:
                 self.u.head("Already Exists")
-                self.u.info("It looks like you've already downloaded {}\n".format(name))
+                self.u.info("It looks like you've already downloaded the following package:\n{}\n".format(name))
                 if not self.interactive:
-                    return
-                menu = self.u.grab("Redownload? (y/n):  ")
+                    menu = "r"
+                else:
+                    print("R. Resume Incomplete Files")
+                    print("D. Redownload All Files")
+                    print("")
+                    print("M. Return")
+                    print("Q. Quit")
+                    print("")
+                    menu = self.u.grab("Please select an option:  ")
                 if not len(menu):
                     continue
-                if menu[0].lower() == "n":
+                elif menu.lower() == "q":
+                    self.u.custom_quit()
+                elif menu.lower() == "m":
                     return
-                if menu[0].lower() == "y":
+                elif menu.lower() == "r":
                     break
-            # Remove the old copy, then re-download
-            shutil.rmtree(download_dir)
-        # Make it new
-        os.makedirs(download_dir)
+                elif menu.lower() == "d":
+                    # Remove the old copy, then re-download
+                    shutil.rmtree(download_dir)
+                    break
+        # Make it anew as needed
+        if not os.path.isdir(download_dir):
+            os.makedirs(download_dir)
         for c,x in enumerate(dl_list,start=1):
             url = x["URL"]
             self.u.head("Downloading File {} of {}".format(c, len(dl_list)))
