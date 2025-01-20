@@ -264,7 +264,7 @@ class Downloader:
             process.join()
         return chunk_so_far
 
-    def stream_to_file(self, url, file_path, progress = True, headers = None, ensure_size_if_present = True):
+    def stream_to_file(self, url, file_path, progress = True, headers = None, ensure_size_if_present = True, allow_resume = True):
         response = self.open_url(url, headers)
         if response is None: return None
         bytes_so_far = 0
@@ -272,7 +272,7 @@ class Downloader:
         except: total_size = -1
         packets = queue = process = None
         mode = "wb"
-        if os.path.isfile(file_path) and total_size != -1:
+        if allow_resume and os.path.isfile(file_path) and total_size != -1:
             # File exists, we're resuming and have a target size.  Check the
             # local file size.
             current_size = os.stat(file_path).st_size
