@@ -352,7 +352,13 @@ class gibMacOS:
             # If we were able to resolve the SMD URL - or it didn't exist, save it to the cache
             if smd or not plist_dict.get("Products",{}).get(prod,{}).get("ServerMetadataURL",""):
                 prod_changed = True
-                self.prod_cache[prod] = prodd
+                # Create a temp prod dict so we can save all but the packages and
+                # size keys - as those are determined based on self.find_recovery
+                temp_prod = {}
+                for key in prodd:
+                    if key in ("packages","size"): continue
+                    temp_prod[key] = prodd[key]
+                self.prod_cache[prod] = temp_prod
             # Log the product
             print_prod(prodd,prod_list)
         # Try saving the cache for later
