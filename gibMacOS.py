@@ -35,8 +35,21 @@ class gibMacOS:
         if os.path.exists(self.settings_path):
             try: self.settings = json.load(open(self.settings_path))
             except: pass
+
+        # Load prod_cache.json if it exists in the Scripts folder
+        self.prod_cache_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"Scripts","prod_cache.plist")
+        self.prod_cache = {}
+        if os.path.exists(self.prod_cache_path):
+            try:
+                with open(self.prod_cache_path,"rb") as f:
+                    self.prod_cache = plist.load(f)
+                assert isinstance(self.prod_cache,dict)
+            except:
+                self.prod_cache = {}
         
-        self.current_macos = self.settings.get("current_macos",20) # if > 16, assume X-5, else 10.X
+        # If > 16, assume X-5, else 10.X
+        # e.g. 17 = Monterey, 18 = Ventura, 19 = Sonoma, 20 = Sequoia
+        self.current_macos = self.settings.get("current_macos",20)
         self.min_macos = 5
         self.print_urls = self.settings.get("print_urls",False)
         self.print_json = False
@@ -84,6 +97,7 @@ class gibMacOS:
             "find_recovery",
             "hide_pid"
         )
+        self.mac_prods = []
 
     def resize(self, width=0, height=0):
         if not self.interactive:
@@ -102,6 +116,15 @@ class gibMacOS:
             raise ProgramError(
                     "Failed to save settings to:\n\n{}\n\nWith error:\n\n - {}\n".format(self.settings_path,repr(e)),
                     title="Error Saving Settings")
+
+    def save_prod_cache(self):
+        try:
+            with open(self.prod_cache_path,"wb") as f:
+                plist.dump(self.prod_cache,f)
+        except Exception as e:
+            raise ProgramError(
+                    "Failed to save product cache to:\n\n{}\n\nWith error:\n\n - {}\n".format(self.prod_cache_path,repr(e)),
+                    title="Error Saving Product Cache")
 
     def set_prods(self):
         self.resize()
@@ -236,19 +259,36 @@ class gibMacOS:
         try:
             # XXX: This is parsing a JavaScript array from the script part of the dist file.
             device_ids = re.search(r"var supportedDeviceIDs\s*=\s*\[([^]]+)\];", dist_file)[1]
-            device_ids = set(i.lower() for i in re.findall(r"'([^',]+)'", device_ids))
+            device_ids = list(set(i.lower() for i in re.findall(r"'([^',]+)'", device_ids)))
         except:
-            device_ids = set()
+            device_ids = []
         return (build,version,name,device_ids)
 
     def get_dict_for_prods(self, prods, plist_dict = None):
-        if plist_dict==self.catalog_data==None:
-            plist_dict = {}
-        else:
-            plist_dict = self.catalog_data if plist_dict == None else plist_dict
-
+        plist_dict = plist_dict or self.catalog_data or {}
         prod_list = []
+        # Keys required to consider a cached element valid
+        prod_keys = (
+            "build",
+            "date",
+            "description",
+            "device_ids",
+            "installer",
+            "packages",
+            "product",
+            "size",
+            "time",
+            "title",
+            "version",
+        )
+        # Boolean to keep track of cache updates
+        prod_changed = False
         for prod in prods:
+            if prod in self.prod_cache and isinstance(self.prod_cache[prod],dict) \
+            and all(x in self.prod_cache[prod] for x in prod_keys):
+                # Already have it - and it's valid
+                prod_list.append(self.prod_cache[prod])
+                continue
             # Grab the ServerMetadataURL for the passed product key if it exists
             prodd = {"product":prod}
             try:
@@ -268,7 +308,7 @@ class gibMacOS:
                 desc = smd.get("localization",{}).get("English",{}).get("description","").decode("utf-8")
                 desctext = desc.split('"p1">')[1].split("</a>")[0]
             except:
-                desctext = None
+                desctext = ""
             prodd["description"] = desctext
             # Iterate the available packages and save their urls and sizes
             if self.find_recovery:
@@ -291,6 +331,14 @@ class gibMacOS:
             if v.lower() != "unknown":
                 prodd["version"] = v
             prod_list.append(prodd)
+            # If we were able to resolve the SMD URL, save it to the cache
+            if smd:
+                prod_changed = True
+                self.prod_cache[prod] = prodd
+        # Try saving the cache for later
+        if prod_changed:
+            try: self.save_prod_cache()
+            except: pass
         # Sort by newest
         prod_list = sorted(prod_list, key=lambda x:x["time"], reverse=True)
         return prod_list
