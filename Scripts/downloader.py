@@ -264,7 +264,7 @@ class Downloader:
             process.join()
         return chunk_so_far
 
-    def stream_to_file(self, url, file_path, progress = True, headers = None, ensure_size_if_present = True, allow_resume = True):
+    def stream_to_file(self, url, file_path, progress = True, headers = None, ensure_size_if_present = True, allow_resume = False):
         response = self.open_url(url, headers)
         if response is None: return None
         bytes_so_far = 0
