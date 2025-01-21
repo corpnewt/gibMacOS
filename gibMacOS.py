@@ -567,7 +567,7 @@ class gibMacOS:
         lines.append("M. Change Max-OS Version (Currently {})".format(self.num_to_macos(self.current_macos,for_url=False)))
         lines.append("C. Change Catalog (Currently {})".format(self.current_catalog))
         lines.append("I. Only Print URLs (Currently {})".format("On" if self.print_urls else "Off"))
-        lines.append("H. Hide Package IDs and Upload Dates")
+        lines.append("H. {} Package IDs and Upload Dates".format("Show" if self.hide_pid else "Hide"))
         if sys.platform.lower() == "darwin":
             lines.append("S. Set Current Catalog to SoftwareUpdate Catalog")
             lines.append("L. Clear SoftwareUpdate Catalog")
