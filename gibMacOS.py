@@ -274,20 +274,50 @@ class gibMacOS:
             "description",
             "device_ids",
             "installer",
-            "packages",
             "product",
-            "size",
             "time",
             "title",
             "version",
         )
+
+        def get_packages_and_size(plist_dict,prod,recovery):
+            # Iterate the available packages and save their urls and sizes
+            packages = []
+            size = -1
+            if recovery:
+                # Only get the recovery packages
+                packages = [x for x in plist_dict.get("Products",{}).get(prod,{}).get("Packages",[]) if x["URL"].endswith(self.recovery_suffixes)]
+            else:
+                # Add them all!
+                packages = plist_dict.get("Products",{}).get(prod,{}).get("Packages",[])
+            # Get size
+            size = self.d.get_size(sum([i["Size"] for i in packages]))
+            return (packages,size)
+
+        def print_prod(prod,prod_list):
+            self.u.info(" -->{}. {} ({}){}".format(
+                str(len(prod_list)+1).rjust(3),
+                prod["title"],
+                prod["build"],
+                " - FULL Install" if self.find_recovery and prod["installer"] else ""
+            ))
+
         # Boolean to keep track of cache updates
         prod_changed = False
         for prod in prods:
             if prod in self.prod_cache and isinstance(self.prod_cache[prod],dict) \
             and all(x in self.prod_cache[prod] for x in prod_keys):
-                # Already have it - and it's valid
-                prod_list.append(self.prod_cache[prod])
+                # Already have it - and it's valid.
+                # Create a shallow copy
+                prodd = {}
+                for key in self.prod_cache[prod]:
+                    prodd[key] = self.prod_cache[prod][key]
+                # Update the packages and size lists
+                prodd["packages"],prodd["size"] = get_packages_and_size(plist_dict,prod,self.find_recovery)
+                # Add to our list and continue on
+                prod_list.append(prodd)
+                # Log the product
+                print_prod(prodd,prod_list)
                 continue
             # Grab the ServerMetadataURL for the passed product key if it exists
             prodd = {"product":prod}
@@ -310,31 +340,21 @@ class gibMacOS:
             except:
                 desctext = ""
             prodd["description"] = desctext
-            # Iterate the available packages and save their urls and sizes
-            if self.find_recovery:
-                # Only get the recovery packages
-                prodd["packages"] = [x for x in plist_dict.get("Products",{}).get(prod,{}).get("Packages",[]) if x["URL"].endswith(self.recovery_suffixes)]
-            else:
-                # Add them all!
-                prodd["packages"] = plist_dict.get("Products",{}).get(prod,{}).get("Packages",[])
+            prodd["packages"],prodd["size"] = get_packages_and_size(plist_dict,prod,self.find_recovery)
             # Get size
             prodd["size"] = self.d.get_size(sum([i["Size"] for i in prodd["packages"]]))
             # Attempt to get the build/version/name/device-ids info from the dist
             prodd["build"],v,n,prodd["device_ids"] = self.get_build_version(plist_dict.get("Products",{}).get(prod,{}).get("Distributions",{}))
             prodd["title"] = smd.get("localization",{}).get("English",{}).get("title",n)
-            self.u.info(" -->{}. {} ({}){}".format(
-                str(len(prod_list)+1).rjust(3),
-                prodd["title"],
-                prodd["build"],
-                " - FULL Install" if self.find_recovery and prodd["installer"] else ""
-            ))
             if v.lower() != "unknown":
                 prodd["version"] = v
             prod_list.append(prodd)
-            # If we were able to resolve the SMD URL, save it to the cache
-            if smd:
+            # If we were able to resolve the SMD URL - or it didn't exist, save it to the cache
+            if smd or not plist_dict.get("Products",{}).get(prod,{}).get("ServerMetadataURL",""):
                 prod_changed = True
                 self.prod_cache[prod] = prodd
+            # Log the product
+            print_prod(prodd,prod_list)
         # Try saving the cache for later
         if prod_changed:
             try: self.save_prod_cache()
