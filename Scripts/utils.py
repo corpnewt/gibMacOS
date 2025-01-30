@@ -137,16 +137,19 @@ class Utils:
     def grab(self, prompt, **kwargs):
         # Takes a prompt, a default, and a timeout and shows it with that timeout
         # returning the result
-        timeout = kwargs.get("timeout", 0)
-        default = kwargs.get("default", None)
+        timeout = kwargs.get("timeout",0)
+        default = kwargs.get("default","")
         if not self.interactive:
             return default
         # If we don't have a timeout - then skip the timed sections
         if timeout <= 0:
-            if sys.version_info >= (3, 0):
-                return input(prompt)
-            else:
-                return str(raw_input(prompt))
+            try:
+                if sys.version_info >= (3, 0):
+                    return input(prompt)
+                else:
+                    return str(raw_input(prompt))
+            except EOFError:
+                return default
         # Write our prompt
         sys.stdout.write(prompt)
         sys.stdout.flush()
@@ -158,8 +161,10 @@ class Utils:
                     c = msvcrt.getche()
                     if ord(c) == 13: # enter_key
                         break
-                    elif ord(c) >= 32: #space_char
-                        i += c
+                    elif ord(c) >= 32: # space_char
+                        i += c.decode() if sys.version_info >= (3,0) and isinstance(c,bytes) else c
+                else:
+                    time.sleep(0.02) # Delay for 20ms to prevent CPU workload
                 if len(i) == 0 and (time.time() - start_time) > timeout:
                     break
         else:
@@ -175,7 +180,10 @@ class Utils:
     def cls(self):
         if not self.interactive:
             return
-        os.system('cls' if os.name=='nt' else 'clear')
+        if os.name == "nt":
+            os.system("cls")
+        elif os.environ.get("TERM"):
+            os.system("clear")
 
     def cprint(self, message, **kwargs):
         strip_colors = kwargs.get("strip_colors", False)
