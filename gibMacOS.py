@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from Scripts import downloader,utils,run,plist
-import os, shutil, time, sys, argparse, re, json
+import os, shutil, time, sys, argparse, re, json, subprocess
 
 class ProgramError(Exception):
     def __init__(self, message, title = "Error"):
@@ -83,6 +83,8 @@ class gibMacOS:
         self.catalog_data    = None
         self.scripts = "Scripts"
         self.plist   = "sucatalog.plist"
+        self.caffeinate_downloads = self.settings.get("caffeinate_downloads",True)
+        self.caffeinate_process = None
         self.save_local = False
         self.force_local = False
         self.find_recovery = self.settings.get("find_recovery",False)
@@ -95,7 +97,8 @@ class gibMacOS:
             "current_catalog",
             "print_urls",
             "find_recovery",
-            "hide_pid"
+            "hide_pid",
+            "caffeinate_downloads"
         )
         self.mac_prods = []
 
@@ -369,6 +372,44 @@ class gibMacOS:
         prod_list = sorted(prod_list, key=lambda x:x["time"], reverse=True)
         return prod_list
 
+    def start_caffeinate(self):
+        # Check if we need to caffeinate
+        if sys.platform.lower() == "darwin" \
+        and self.caffeinate_downloads \
+        and os.path.isfile("/usr/bin/caffeinate"):
+            # Terminate any existing caffeinate process
+            self.term_caffeinate_proc()
+            # Create a new caffeinate process
+            self.caffeinate_process = subprocess.Popen(
+                ["/usr/bin/caffeinate"],
+                stderr=getattr(subprocess,"DEVNULL",open(os.devnull,"w")),
+                stdout=getattr(subprocess,"DEVNULL",open(os.devnull,"w")),
+                stdin=getattr(subprocess,"DEVNULL",open(os.devnull,"w"))
+            )
+        return self.caffeinate_process
+
+    def term_caffeinate_proc(self):
+        if self.caffeinate_process is None:
+            return True
+        try:
+            if self.caffeinate_process.poll() is None:
+                # Save the time we started waiting
+                start = time.time()
+                while self.caffeinate_process.poll() is None:
+                    # Make sure we haven't waited too long
+                    if time.time() - start > 10:
+                        print(" - Timed out trying to terminate caffeinate process with PID {}!".format(
+                            self.caffeinate_process.pid
+                        ))
+                        return False
+                    # It's alive - terminate it
+                    self.caffeinate_process.terminate()
+                    # Sleep to let things settle
+                    time.sleep(0.02)
+        except:
+            pass
+        return True # Couldn't poll - or we termed it
+
     def download_prod(self, prod, dmg = False):
         # Takes a dictonary of details and downloads it
         self.resize()
@@ -433,24 +474,33 @@ class gibMacOS:
         # Make it anew as needed
         if not os.path.isdir(download_dir):
             os.makedirs(download_dir)
+        # Clean up any leftover or missed caffeinate
+        # procs
+        self.term_caffeinate_proc()
         for c,x in enumerate(dl_list,start=1):
             url = x["URL"]
             self.u.head("Downloading File {} of {}".format(c, len(dl_list)))
+            self.u.info("- {} -\n".format(name))
             if len(done):
                 self.u.info("\n".join(["{} --> {}".format(y["name"], "Succeeded" if y["status"] else "Failed") for y in done]))
                 self.u.info("")
             if dmg:
                 self.u.info("NOTE: Only Downloading DMG Files\n")
-            self.u.info("Downloading {} for {}...\n".format(os.path.basename(url), name))
+            self.u.info("Downloading {}...\n".format(os.path.basename(url)))
             try:
+                # Caffeinate as needed
+                self.start_caffeinate()
                 result = self.d.stream_to_file(url, os.path.join(download_dir, os.path.basename(url)), allow_resume=True)
                 assert result is not None
                 done.append({"name":os.path.basename(url), "status":True})
             except:
                 done.append({"name":os.path.basename(url), "status":False})
+            # Kill caffeinate if we need to
+            self.term_caffeinate_proc()
         succeeded = [x for x in done if x["status"]]
         failed    = [x for x in done if not x["status"]]
         self.u.head("Downloaded {} of {}".format(len(succeeded), len(dl_list)))
+        self.u.info("- {} -\n".format(name))
         self.u.info("Succeeded:")
         if len(succeeded):
             for x in succeeded:
@@ -577,6 +627,7 @@ class gibMacOS:
         if sys.platform.lower() == "darwin":
             lines.append("S. Set Current Catalog to SoftwareUpdate Catalog")
             lines.append("L. Clear SoftwareUpdate Catalog")
+            lines.append("F. Caffeinate Downloads to Prevent Sleep (Currently {})".format("On" if self.caffeinate_downloads else "Off"))
         lines.append("R. Toggle Recovery-Only (Currently {})".format("On" if self.find_recovery else "Off"))
         lines.append("U. Show Catalog URL")
         lines.append("Q. Quit")
@@ -604,14 +655,6 @@ class gibMacOS:
         elif menu[0].lower() == "h":
             self.hide_pid ^= True
             self.save_settings()
-        elif menu[0].lower() == "l" and sys.platform.lower() == "darwin":
-            # Clear the software update catalog
-            self.u.head("Clearing SU CatalogURL")
-            print("sudo softwareupdate --clear-catalog")
-            self.r.run({"args":["softwareupdate","--clear-catalog"],"sudo":True})
-            print("")
-            self.u.grab("Done.", timeout=5)
-            return
         elif menu[0].lower() == "s" and sys.platform.lower() == "darwin":
             # Set the software update catalog to our current catalog url
             self.u.head("Setting SU CatalogURL")
@@ -623,6 +666,18 @@ class gibMacOS:
             print("")
             self.u.grab("Done",timeout=5)
             return
+        elif menu[0].lower() == "l" and sys.platform.lower() == "darwin":
+            # Clear the software update catalog
+            self.u.head("Clearing SU CatalogURL")
+            print("sudo softwareupdate --clear-catalog")
+            self.r.run({"args":["softwareupdate","--clear-catalog"],"sudo":True})
+            print("")
+            self.u.grab("Done.", timeout=5)
+            return
+        elif menu[0].lower() == "f" and sys.platform.lower() == "darwin":
+            # Toggle our caffeinate downloads value and save settings
+            self.caffeinate_downloads ^= True
+            self.save_settings()
         elif menu[0].lower() == "r":
             self.find_recovery ^= True
             self.save_settings()
