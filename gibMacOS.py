@@ -372,12 +372,18 @@ class gibMacOS:
                 temp_prod = {}
                 for key in prodd:
                     if key in ("packages","size"): continue
+                    if prodd[key] == "Unknown":
+                        # Don't cache Unknown values
+                        temp_prod = None
+                        break
                     temp_prod[key] = prodd[key]
-                self.prod_cache[prod] = temp_prod
+                if temp_prod:
+                    # Only update the cache if it changed
+                    self.prod_cache[prod] = temp_prod
             # Log the product
             print_prod(prodd,prod_list)
         # Try saving the cache for later
-        if prod_changed:
+        if prod_changed and self.prod_cache:
             try: self.save_prod_cache()
             except: pass
         # Sort by newest
