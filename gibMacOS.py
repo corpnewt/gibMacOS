@@ -306,11 +306,22 @@ class gibMacOS:
                 " - FULL Install" if self.find_recovery and prod["installer"] else ""
             ))
 
+        def prod_valid(prod,prod_list,prod_keys):
+            # Check if the prod has all prod keys, and
+            # none are "Unknown"
+            if not isinstance(prod_list,dict) or not prod in prod_list or \
+            not all(x in prod_list[prod] for x in prod_keys):
+                # Wrong type, missing the prod, or prod_list keys
+                return False
+            # Let's make sure none of the keys return Unknown
+            if any(prod_list[prod].get(x,"Unknown")=="Unknown" for x in prod_keys):
+                return False
+            return True
+
         # Boolean to keep track of cache updates
         prod_changed = False
         for prod in prods:
-            if prod in self.prod_cache and isinstance(self.prod_cache[prod],dict) \
-            and all(x in self.prod_cache[prod] for x in prod_keys):
+            if prod_valid(prod,self.prod_cache,prod_keys):
                 # Already have it - and it's valid.
                 # Create a shallow copy
                 prodd = {}
