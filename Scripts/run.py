@@ -1,7 +1,7 @@
 import sys, subprocess, time, threading, shlex
-try:
+if sys.version_info[0] < 3:
     from Queue import Queue, Empty
-except:
+else:
     from queue import Queue, Empty
 
 ON_POSIX = 'posix' in sys.builtin_module_names
