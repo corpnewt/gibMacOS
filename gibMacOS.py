@@ -138,6 +138,10 @@ class gibMacOS:
                     self.local_catalog
                 )
             message += "Please ensure you have a working internet connection."
+            if self.interactive:
+                print(message)
+                self.u.grab("\nPress [enter] to continue...")
+                return
             raise ProgramError(message, title="Catalog Data Error")
         self.u.head("Parsing Data")
         self.u.info("Scanning products after catalog download...\n")
@@ -611,8 +615,13 @@ class gibMacOS:
         if not version: return
         self.current_macos = version
         self.save_settings()
-        # At this point, we should be good
-        self.get_catalog_data()
+        # At this point, we should be good - set teh catalog
+        # data - but if it fails, remove the listed prods
+        if not self.get_catalog_data():
+            self.mac_prods = []
+            self.u.grab("\nPress [enter] to return...")
+            self.pick_macos()
+            return
 
     def main(self, dmg = False):
         lines = []
