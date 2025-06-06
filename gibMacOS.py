@@ -618,7 +618,7 @@ class gibMacOS:
         # At this point, we should be good - set teh catalog
         # data - but if it fails, remove the listed prods
         if not self.get_catalog_data():
-            self.mac_prods = []
+            self.catalog_data = None
             self.u.grab("\nPress [enter] to return...")
             self.pick_macos()
             return
@@ -670,7 +670,6 @@ class gibMacOS:
             self.u.custom_quit()
         elif menu[0].lower() == "u":
             self.show_catalog_url()
-            return
         elif menu[0].lower() == "m":
             self.pick_macos()
         elif menu[0].lower() == "c":
@@ -678,7 +677,6 @@ class gibMacOS:
         elif menu[0].lower() == "i":
             self.print_urls ^= True
             self.save_settings()
-            return
         elif menu[0].lower() == "h":
             self.hide_pid ^= True
             self.save_settings()
@@ -692,7 +690,6 @@ class gibMacOS:
             self.r.run({"args":["softwareupdate","--set-catalog",url],"sudo":True})
             print("")
             self.u.grab("Done",timeout=5)
-            return
         elif menu[0].lower() == "l" and sys.platform.lower() == "darwin":
             # Clear the software update catalog
             self.u.head("Clearing SU CatalogURL")
@@ -700,7 +697,6 @@ class gibMacOS:
             self.r.run({"args":["softwareupdate","--clear-catalog"],"sudo":True})
             print("")
             self.u.grab("Done.", timeout=5)
-            return
         elif menu[0].lower() == "f" and sys.platform.lower() == "darwin":
             # Toggle our caffeinate downloads value and save settings
             self.caffeinate_downloads ^= True
@@ -713,16 +709,15 @@ class gibMacOS:
             self.u.head("Parsing Data")
             print("Re-scanning products after url preference toggled...\n")
             self.mac_prods = self.get_dict_for_prods(self.get_installers())
-            return
-        
-        # Assume we picked something
-        try:
-            menu = int(menu)
-        except:
-            return
-        if menu < 1 or menu > len(self.mac_prods):
-            return
-        self.download_prod(self.mac_prods[menu-1], dmg)
+        else:
+            # Assume we picked something
+            try:
+                menu = int(menu)
+            except:
+                return
+            if menu < 1 or menu > len(self.mac_prods):
+                return
+            self.download_prod(self.mac_prods[menu-1], dmg)
 
     def get_latest(self, device_id = None, dmg = False):
         self.u.head("Downloading Latest")
