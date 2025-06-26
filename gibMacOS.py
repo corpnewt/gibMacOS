@@ -77,7 +77,8 @@ class gibMacOS:
             "monterey" : "12",
             "ventura" : "13",
             "sonoma" : "14",
-            "sequoia" : "15"
+            "sequoia" : "15",
+            "tahoe" : "26"
         }
         self.current_catalog = self.settings.get("current_catalog","publicrelease")
         self.catalog_data    = None
@@ -169,7 +170,9 @@ class gibMacOS:
         if minos is None: minos = self.min_macos
         if maxos is None: maxos = self.current_macos
         if minos > maxos: minos,maxos = maxos,minos # Ensure min is less than or equal
-        os_versions = [self.num_to_macos(x,for_url=True) for x in range(minos,maxos+1)]
+        os_versions = [self.num_to_macos(x,for_url=True) for x in range(minos,min(maxos+1,21))] # until sequoia
+        if maxos > 30: # since tahoe
+            os_versions.extend([self.num_to_macos(x,for_url=True) for x in range(31,maxos+1)])
         if catalog:
             # We have a custom catalog - prepend the first entry + catalog to the list
             custom_cat_entry = os_versions[-1]+catalog
