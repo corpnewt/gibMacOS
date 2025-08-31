@@ -93,13 +93,16 @@ class gibMacOS:
             "RecoveryHDUpdate.pkg",
             "RecoveryHDMetaDmg.pkg"
         )
+        self.use_aria2c = self.settings.get("use_aria2c", self.d.check_aria2c())
+        self.d.set_use_aria2c(self.use_aria2c)
         self.settings_to_save = (
             "current_macos",
             "current_catalog",
             "print_urls",
             "find_recovery",
             "hide_pid",
-            "caffeinate_downloads"
+            "caffeinate_downloads",
+            "use_aria2c"
         )
         self.mac_prods = []
 
@@ -659,6 +662,8 @@ class gibMacOS:
             lines.append("L. Clear SoftwareUpdate Catalog")
             lines.append("F. Caffeinate Downloads to Prevent Sleep (Currently {})".format("On" if self.caffeinate_downloads else "Off"))
         lines.append("R. Toggle Recovery-Only (Currently {})".format("On" if self.find_recovery else "Off"))
+        if self.d.check_aria2c():
+            lines.append("A. Toggle aria2c Downloader (Currently {})".format("On" if self.use_aria2c else "Off"))
         lines.append("U. Show Catalog URL")
         lines.append("Q. Quit")
         lines.append(" ")
@@ -706,6 +711,10 @@ class gibMacOS:
             self.save_settings()
         elif menu[0].lower() == "r":
             self.find_recovery ^= True
+            self.save_settings()
+        elif menu[0].lower() == "a" and self.d.check_aria2c():
+            self.use_aria2c ^= True
+            self.d.set_use_aria2c(self.use_aria2c)
             self.save_settings()
         if menu[0].lower() in ["m","c","r"]:
             self.resize()
