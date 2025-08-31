@@ -1,4 +1,4 @@
-import sys, os, time, ssl, gzip, multiprocessing
+import sys, os, time, ssl, gzip, multiprocessing, subprocess, shutil
 from io import BytesIO
 # Python-aware urllib stuff
 try:
@@ -145,6 +145,7 @@ class Downloader:
     def __init__(self,**kwargs):
         self.ua = kwargs.get("useragent",{"User-Agent":"Mozilla"})
         self.chunk = 1048576 # 1024 x 1024 i.e. 1MiB
+        self.use_aria2c = kwargs.get("use_aria2c", self.check_aria2c())
         if os.name=="nt": os.system("color") # Initialize cmd for ANSI escapes
         # Provide reasonable default logic to workaround macOS CA file handling 
         cafile = ssl.get_default_verify_paths().openssl_cafile
@@ -158,6 +159,15 @@ class Downloader:
             # None of the above worked, disable certificate verification for now
             self.ssl_context = ssl._create_unverified_context()
         return
+    
+    def check_aria2c(self):
+        # Check if aria2c is available in the system PATH
+        return shutil.which('aria2c') is not None
+    
+    def set_use_aria2c(self, use_aria2c):
+        # Allow toggling between aria2c and default downloader
+        self.use_aria2c = use_aria2c if use_aria2c and self.check_aria2c() else False
+        return self.use_aria2c
 
     def _decode(self, value, encoding="utf-8", errors="ignore"):
         # Helper method to only decode if bytes type
@@ -264,7 +274,59 @@ class Downloader:
             process.join()
         return chunk_so_far
 
+    def stream_to_file_aria2c(self, url, file_path, progress = True, headers = None, ensure_size_if_present = True, allow_resume = False):
+        # Download using aria2c if available
+        try:
+            # Build aria2c command
+            cmd = ['aria2c', url, '-o', os.path.basename(file_path), '-d', os.path.dirname(file_path)]
+            
+            # Add user agent header if provided
+            if headers:
+                for key, value in headers.items():
+                    if key.lower() == 'user-agent':
+                        cmd.extend(['--user-agent', value])
+                    else:
+                        cmd.extend(['--header', '{}:{}'.format(key, value)])
+            elif self.ua:
+                ua_value = self.ua.get('User-Agent', 'Mozilla')
+                cmd.extend(['--user-agent', ua_value])
+            
+            # Add resume support
+            if allow_resume:
+                cmd.append('-c')
+            
+            # Add connection options for better performance
+            cmd.extend(['-x', '16', '-s', '16', '-k', '1M'])
+            
+            # Disable certificate verification if using unverified context
+            if hasattr(self, 'ssl_context') and isinstance(self.ssl_context, ssl.SSLContext):
+                if not self.ssl_context.check_hostname:
+                    cmd.append('--check-certificate=false')
+            
+            # Show progress
+            if not progress:
+                cmd.append('-q')
+            
+            # Run aria2c
+            result = subprocess.run(cmd, capture_output=False)
+            
+            if result.returncode == 0 and os.path.exists(file_path):
+                return file_path
+            else:
+                return None
+        except Exception as e:
+            # Fall back to default downloader
+            return self.stream_to_file_default(url, file_path, progress, headers, ensure_size_if_present, allow_resume)
+    
     def stream_to_file(self, url, file_path, progress = True, headers = None, ensure_size_if_present = True, allow_resume = False):
+        if self.use_aria2c:
+            result = self.stream_to_file_aria2c(url, file_path, progress, headers, ensure_size_if_present, allow_resume)
+            if result:
+                return result
+        # Fall back to default implementation
+        return self.stream_to_file_default(url, file_path, progress, headers, ensure_size_if_present, allow_resume)
+    
+    def stream_to_file_default(self, url, file_path, progress = True, headers = None, ensure_size_if_present = True, allow_resume = False):
         response = self.open_url(url, headers)
         if response is None: return None
         bytes_so_far = 0
