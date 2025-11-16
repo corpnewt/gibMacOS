@@ -15,6 +15,8 @@ use_py3="TRUE"
 
 # We'll parse if the first argument passed is
 # --install-python and if so, we'll just install
+# Can optionally take a version number as the
+# second arg - i.e. --install-python 3.13.1
 just_installing="FALSE"
 
 tempdir=""
@@ -29,7 +31,7 @@ compare_to_version () {
         return
     fi
     local current_os= comp=
-    current_os="$(sw_vers -productVersion)"
+    current_os="$(sw_vers -productVersion 2>/dev/null)"
     comp="$(vercomp "$current_os" "$2")"
     # Check gequal and lequal first
     if [[ "$1" == "3" && ("$comp" == "1" || "$comp" == "0") ]] || [[ "$1" == "4" && ("$comp" == "2" || "$comp" == "0") ]] || [[ "$comp" == "$1" ]]; then
@@ -80,30 +82,44 @@ download_py () {
     if [ -z "$vers" ]; then
         echo "Gathering latest version..."
         vers="$(get_remote_py_version)"
+        if [ -z "$vers" ]; then
+            if [ "$just_installing" == "TRUE" ]; then
+                echo " - Failed to get info!"
+                exit 1
+            else
+                # Didn't get it still - bail
+                print_error
+            fi
+        fi
+        echo "Located Version:  $vers"
+    else
+        # Got a version passed
+        echo "User-Provided Version:  $vers"
     fi
-    if [ -z "$vers" ]; then
-        # Didn't get it still - bail
-        print_error
-    fi
-    echo "Located Version:  $vers"
-    echo
     echo "Building download url..."
-    url="$(curl -L https://www.python.org/downloads/release/python-${vers//./}/ --compressed 2>&1 | grep -iE "python-$vers-macos.*.pkg\"" | awk -F'"' '{ print $2 }')"
+    url="$(\
+    curl -L https://www.python.org/downloads/release/python-${vers//./}/ --compressed 2>&1 | \
+    grep -iE "python-$vers-macos.*.pkg\"" | \
+    grep -iE "a href=" | \
+    awk -F'"' '{ print $2 }' | \
+    head -n 1\
+    )"
     if [ -z "$url" ]; then
-        # Couldn't get the URL - bail
-        print_error
+        if [ "$just_installing" == "TRUE" ]; then
+            echo " - Failed to build download url!"
+            exit 1
+        else
+            # Couldn't get the URL - bail
+            print_error
+        fi
     fi
     echo " - $url"
-    echo
     echo "Downloading..."
-    echo
     # Create a temp dir and download to it
     tempdir="$(mktemp -d 2>/dev/null || mktemp -d -t 'tempdir')"
     curl "$url" -o "$tempdir/python.pkg"
     if [ "$?" != "0" ]; then
-        echo
         echo " - Failed to download python installer!"
-        echo
         exit $?
     fi
     echo
@@ -111,37 +127,34 @@ download_py () {
     echo
     sudo installer -pkg "$tempdir/python.pkg" -target /
     if [ "$?" != "0" ]; then
-        echo
         echo " - Failed to install python!"
-        echo
         exit $?
     fi
+    echo
     # Now we expand the package and look for a shell update script
     pkgutil --expand "$tempdir/python.pkg" "$tempdir/python"
     if [ -e "$tempdir/python/Python_Shell_Profile_Updater.pkg/Scripts/postinstall" ]; then
         # Run the script
-        echo
         echo "Updating PATH..."
         echo
         "$tempdir/python/Python_Shell_Profile_Updater.pkg/Scripts/postinstall"
+        echo
     fi
     vers_folder="Python $(echo "$vers" | cut -d'.' -f1 -f2)"
     if [ -f "/Applications/$vers_folder/Install Certificates.command" ]; then
         # Certs script exists - let's execute that to make sure our certificates are updated
-        echo
         echo "Updating Certificates..."
         echo
         "/Applications/$vers_folder/Install Certificates.command"
+        echo
     fi
-    echo
     echo "Cleaning up..."
     cleanup
-    echo
     if [ "$just_installing" == "TRUE" ]; then
+        echo
         echo "Done."
     else
         # Now we check for py again
-        echo "Rechecking py..."
         downloaded="TRUE"
         clear
         main
@@ -326,7 +339,7 @@ check_py3_stub="$(compare_to_version "3" "10.15")"
 trap cleanup EXIT
 if [ "$1" == "--install-python" ] && [ "$kernel" == "Darwin" ]; then
     just_installing="TRUE"
-    download_py
+    download_py "$2"
 else
     main
 fi
