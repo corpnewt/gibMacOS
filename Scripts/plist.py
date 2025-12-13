@@ -386,7 +386,7 @@ class _BinaryPlistParser:
         elif tokenH == 0x10:  # int
             result = int(binascii.hexlify(self._fp.read(1 << tokenL)),16)
             if tokenL >= 3: # Signed - adjust
-                result = result-((result & 0x8000000000000000) << 1)
+                result = result-(result & 1 << 2**tokenL*8-1)*2
 
         elif token == 0x22: # real
             result = struct.unpack('>f', self._fp.read(4))[0]
@@ -617,7 +617,7 @@ class _BinaryPlistWriter (object):
             elif value < 1 << 63:
                 self._fp.write(struct.pack('>BQ', 0x13, value))
             elif value < 1 << 64:
-                self._fp.write(b'\x14' + value.to_bytes(16, 'big', signed=True))
+                self._fp.write(binascii.unhexlify("14"+hex(value)[2:].rstrip("L").rjust(32,"0")))
             else:
                 raise OverflowError(value)
 
